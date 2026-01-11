@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import type { TimelineEvent, SessionDetail } from '@/services/types';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
@@ -70,9 +71,10 @@ export function BookmarkDialog({ event, session, onClose }: BookmarkDialogProps)
     }
   };
 
-  return (
+  // Use portal to render at document body level, escaping any parent stacking contexts
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
       onClick={handleBackdropClick}
     >
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -172,6 +174,7 @@ export function BookmarkDialog({ event, session, onClose }: BookmarkDialogProps)
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
