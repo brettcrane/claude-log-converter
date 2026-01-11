@@ -53,9 +53,9 @@ export function FloatingContextBadge({ eventType }: FloatingContextBadgeProps) {
   if (!config) return null;
 
   return (
-    <div className="fixed top-20 right-6 z-50 pointer-events-none">
+    <div className="fixed right-4 top-1/2 -translate-y-1/2 z-40 pointer-events-none">
       <div
-        className={`${config.bgColor} ${config.textColor} rounded-full px-3 py-2 shadow-lg flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-right-2 duration-200`}
+        className={`${config.bgColor} ${config.textColor} rounded-full px-3 py-2 shadow-lg flex items-center gap-2 text-sm font-medium transition-all duration-200`}
       >
         {config.icon}
         <span className="hidden sm:inline">{config.label}</span>

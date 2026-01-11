@@ -203,44 +203,53 @@ export function Timeline({ events }: TimelineProps) {
     }
   }, [searchMatches, scrollToMatch]);
 
-  // Track active event using scroll position
-  // This approach works reliably with virtual scrolling (unlike IntersectionObserver)
+  // Track active event using window scroll position
+  // Since the layout allows window scrolling, we use window.scrollY
   useEffect(() => {
     const scrollContainer = parentRef.current;
     if (!scrollContainer) return;
 
     const updateActiveItem = () => {
-      const scrollTop = scrollContainer.scrollTop;
-      // Find the item at ~20% from the top of viewport for better UX
-      const targetPosition = scrollTop + scrollContainer.clientHeight * 0.2;
+      // Get the container's position relative to viewport
+      const containerRect = scrollContainer.getBoundingClientRect();
+      // Calculate target position: middle of viewport, relative to container's top
+      const viewportMiddle = window.innerHeight / 2;
+      const targetPosition = viewportMiddle - containerRect.top;
 
       // Find the item that contains this position
       const virtualItems = virtualizer.getVirtualItems();
-      for (const virtualItem of virtualItems) {
+      const sortedItems = [...virtualItems].sort((a, b) => a.start - b.start);
+
+      for (const virtualItem of sortedItems) {
         if (virtualItem.start <= targetPosition && virtualItem.end > targetPosition) {
           const item = groupedItems[virtualItem.index];
           if (item) {
+            const eventType = item.type === 'single' ? item.event.type : item.groupType;
             setActiveItemIndex(virtualItem.index);
-            if (item.type === 'single') {
-              setActiveEventType(item.event.type);
-            } else {
-              setActiveEventType(item.groupType);
-            }
+            setActiveEventType(eventType);
           }
           return;
         }
       }
 
-      // Fallback to first visible item
-      if (virtualItems.length > 0) {
-        const firstItem = groupedItems[virtualItems[0].index];
-        if (firstItem) {
-          setActiveItemIndex(virtualItems[0].index);
-          if (firstItem.type === 'single') {
-            setActiveEventType(firstItem.event.type);
-          } else {
-            setActiveEventType(firstItem.groupType);
+      // If no item contains the target position, find the closest item
+      if (sortedItems.length > 0) {
+        let closestItem = sortedItems[0];
+        let closestDistance = Math.abs(targetPosition - (closestItem.start + closestItem.end) / 2);
+
+        for (const virtualItem of sortedItems) {
+          const itemCenter = (virtualItem.start + virtualItem.end) / 2;
+          const distance = Math.abs(targetPosition - itemCenter);
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestItem = virtualItem;
           }
+        }
+
+        const item = groupedItems[closestItem.index];
+        if (item) {
+          setActiveItemIndex(closestItem.index);
+          setActiveEventType(item.type === 'single' ? item.event.type : item.groupType);
         }
       }
     };
@@ -248,8 +257,13 @@ export function Timeline({ events }: TimelineProps) {
     // Initial update
     updateActiveItem();
 
-    scrollContainer.addEventListener('scroll', updateActiveItem, { passive: true });
-    return () => scrollContainer.removeEventListener('scroll', updateActiveItem);
+    // Listen to window scroll since that's what's actually scrolling
+    window.addEventListener('scroll', updateActiveItem, { passive: true });
+    window.addEventListener('resize', updateActiveItem, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', updateActiveItem);
+      window.removeEventListener('resize', updateActiveItem);
+    };
   }, [groupedItems, virtualizer]);
 
   const toggleType = (type: string) => {
@@ -275,7 +289,7 @@ export function Timeline({ events }: TimelineProps) {
   const currentMatchEventIndex = searchMatches[currentMatchIndex];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Search bar */}
       {searchOpen && (
         <div className="flex-shrink-0 px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-yellow-50 dark:bg-yellow-900/20">
@@ -397,7 +411,7 @@ export function Timeline({ events }: TimelineProps) {
         </div>
       </div>
 
-      <div ref={parentRef} className="flex-1 overflow-auto">
+      <div ref={parentRef} className="flex-1 min-h-0 overflow-auto">
         <div
           style={{
             height: `${virtualizer.getTotalSize()}px`,

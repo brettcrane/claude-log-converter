@@ -166,7 +166,7 @@ export function SessionDetailPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {activeTab === 'timeline' ? <Timeline events={currentSession.events} /> : null}
         {activeTab === 'files' ? <FilesTab session={currentSession} /> : null}
         {activeTab === 'summary' ? <SummaryTab session={currentSession} /> : null}
