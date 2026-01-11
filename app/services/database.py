@@ -74,7 +74,10 @@ def init_database():
 @contextmanager
 def get_db_connection():
     """Get database connection with automatic commit/rollback."""
-    conn = sqlite3.connect(settings.bookmark_db_path, timeout=5.0)
+    # check_same_thread=False is needed for FastAPI's async/threaded request handling
+    conn = sqlite3.connect(
+        settings.bookmark_db_path, timeout=5.0, check_same_thread=False
+    )
     conn.row_factory = sqlite3.Row  # Dict-like access
     try:
         yield conn

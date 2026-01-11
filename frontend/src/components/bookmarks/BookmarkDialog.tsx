@@ -72,7 +72,7 @@ export function BookmarkDialog({ event, session, onClose }: BookmarkDialogProps)
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50"
       onClick={handleBackdropClick}
     >
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
