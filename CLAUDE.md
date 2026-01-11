@@ -14,11 +14,13 @@ Web application for browsing and analyzing Claude Code session logs. Converts `.
 ## Architecture
 **Single-server design** - FastAPI serves both API and static frontend. No separate servers needed.
 
+**Hybrid data approach** - JSONL files remain source of truth, SQLite provides fast indexing and FTS5 search.
+
 ```
 claude-log-converter/
 ├── app/                  # FastAPI backend
 │   ├── api/routes/       # API endpoints
-│   ├── services/         # Business logic (log_parser, session_indexer)
+│   ├── services/         # Business logic (log_parser, session_indexer, session_db)
 │   └── models/           # Pydantic models
 ├── frontend/             # React source code (KEEP THIS - needed for changes)
 ├── static/               # Built frontend (gitignored, regenerated)
@@ -29,6 +31,14 @@ claude-log-converter/
 ├── run.py                # Single entry point
 └── requirements.txt
 ```
+
+### SQLite Backend (NEW)
+- **Fast search**: 100-500x faster than file scanning using FTS5 full-text search
+- **Hybrid approach**: JSONL files remain immutable source of truth, SQLite is expendable cache
+- **Auto-sync**: Detects new/modified sessions on startup via file mtime tracking
+- **Zero risk**: Can rebuild index from JSONL at any time (safe to delete `sessions.db`)
+- **Feature flag**: Set `CLAUDE_LOG_USE_SQLITE_INDEX=false` to disable (falls back to file scanning)
+- **Database location**: `~/.claude-log-converter/sessions.db`
 
 ## CRITICAL: TODO.md Workflow
 **Update TODO.md IMMEDIATELY after completing any task from the list.**
@@ -82,18 +92,22 @@ Before any commit, verify:
 | `/api/projects` | GET | List all projects |
 | `/api/sessions` | GET | List sessions (filters: project, date, search) |
 | `/api/sessions/{id}` | GET | Full session details |
-| `/api/sessions/cache/clear` | POST | Clear session cache (for refresh) |
+| `/api/sessions/cache/clear` | POST | Clear cache & sync new/stale sessions |
+| `/api/sessions/index/rebuild` | POST | Rebuild entire SQLite index from JSONL |
+| `/api/sessions/index/stats` | GET | Get index statistics (enabled, session count) |
 | `/api/export/{id}/markdown` | GET | Export as markdown |
 | `/api/export/{id}/json` | GET | Export as JSON |
 | `/api/upload` | POST | Upload JSONL file |
 
 ## Key Features
+- **Lightning-fast search** - SQLite FTS5 full-text search (100-500x faster than file scanning)
 - **Session list** with full-text search (searches conversation content, not just metadata)
 - **Interactive timeline** with virtual scrolling for large sessions
 - **Collapsible sidebar** (toggle via header button)
-- **Refresh button** to find new sessions (clears 5-minute cache)
+- **Refresh button** to find new sessions (auto-syncs index incrementally)
 - **Export** to Markdown/JSON
 - **File upload** for external .jsonl logs
+- **Persistent cache** - Index survives restarts, no re-parsing needed
 
 ## Best Practices
 
@@ -117,3 +131,54 @@ Sessions are read from `~/.claude/projects/` (configurable via `CLAUDE_LOG_CLAUD
 
 ### JSONL Format
 Each line is a JSON object with `type` field: `user`, `assistant`, `tool_use`, `tool_result`, etc.
+
+## SQLite Index Management
+
+### Configuration
+Environment variables (prefix: `CLAUDE_LOG_`):
+- `CLAUDE_LOG_DB_PATH` - Database path (default: `~/.claude-log-converter/sessions.db`)
+- `CLAUDE_LOG_USE_SQLITE_INDEX` - Enable SQLite backend (default: `true`)
+- `CLAUDE_LOG_CLAUDE_PROJECTS_DIR` - Source directory for JSONL files
+
+### Rebuild Index
+If the index gets corrupted or out of sync:
+```bash
+# Via API (while app is running)
+curl -X POST http://localhost:8000/api/sessions/index/rebuild
+
+# Or delete database file and restart (auto-rebuilds)
+rm ~/.claude-log-converter/sessions.db
+python run.py
+```
+
+### Check Index Status
+```bash
+# Get index statistics
+curl http://localhost:8000/api/sessions/index/stats
+```
+
+### Disable SQLite (Fallback Mode)
+If SQLite causes issues, disable it temporarily:
+```bash
+export CLAUDE_LOG_USE_SQLITE_INDEX=false
+python run.py
+```
+The app will fall back to the original file-scanning approach (slower search, but works without SQLite).
+
+### How It Works
+1. **On startup**: Checks for new/modified JSONL files via mtime tracking
+2. **Incremental sync**: Only indexes changed files (fast)
+3. **On search**: Uses FTS5 full-text index for instant results
+4. **On detail view**: Reconstructs session from indexed events (falls back to JSONL if stale)
+5. **On refresh**: Clears cache and re-syncs (picks up new sessions immediately)
+
+### Troubleshooting
+- **Slow startup**: Large number of new sessions detected. Check logs for sync progress.
+- **Missing sessions**: Click "Refresh" button to trigger incremental sync.
+- **Corrupted database**: Delete `sessions.db` file, restart app to rebuild from JSONL.
+- **Search not working**: Check `/api/sessions/index/stats` to verify SQLite is enabled.
+
+For detailed analysis, see:
+- `SQLITE_RECOMMENDATION.md` - Implementation plan and decision rationale
+- `SQLITE_ANALYSIS.md` - Comprehensive technical analysis
+- `PERFORMANCE_COMPARISON.md` - Benchmarks and performance data

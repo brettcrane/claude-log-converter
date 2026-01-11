@@ -146,6 +146,44 @@ async def get_file_changes(session_id: str, file_path: str):
 
 @router.post("/cache/clear")
 async def clear_cache():
-    """Clear the session cache."""
+    """Clear the session cache and sync new/stale sessions."""
     session_indexer.clear_cache()
     return {"status": "ok", "message": "Cache cleared"}
+
+
+@router.post("/index/rebuild")
+async def rebuild_index():
+    """Rebuild the entire SQLite index from JSONL files.
+
+    This is a safe operation that uses JSONL as source of truth.
+    The index can be rebuilt at any time without data loss.
+
+    Returns:
+        Number of sessions indexed and time taken
+    """
+    try:
+        import time
+        start_time = time.time()
+
+        count = session_indexer.rebuild_index()
+        elapsed = time.time() - start_time
+
+        return {
+            "status": "ok",
+            "message": "Index rebuilt successfully",
+            "sessions_indexed": count,
+            "elapsed_seconds": round(elapsed, 2),
+        }
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to rebuild index: {str(e)}") from e
+
+
+@router.get("/index/stats")
+async def get_index_stats():
+    """Get statistics about the SQLite index.
+
+    Returns information about the index status, session count, and configuration.
+    """
+    return session_indexer.get_index_stats()
