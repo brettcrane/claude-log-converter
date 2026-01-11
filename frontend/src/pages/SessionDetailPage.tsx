@@ -1,6 +1,6 @@
 import { useEffect, useState, Fragment } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Tab } from '@headlessui/react';
+import { Tab, Switch } from '@headlessui/react';
 import {
   ArrowLeft,
   Clock,
@@ -92,15 +92,26 @@ export function SessionDetailPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
-                <input
-                  type="checkbox"
-                  checked={includeThinking}
-                  onChange={(e) => setIncludeThinking(e.target.checked)}
-                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                Thinking
-              </label>
+              <Switch.Group>
+                <div className="flex items-center gap-1.5">
+                  <Switch
+                    checked={includeThinking}
+                    onChange={setIncludeThinking}
+                    className={`${
+                      includeThinking ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                    } relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1`}
+                  >
+                    <span
+                      className={`${
+                        includeThinking ? 'translate-x-5' : 'translate-x-1'
+                      } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                    />
+                  </Switch>
+                  <Switch.Label className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                    Thinking
+                  </Switch.Label>
+                </div>
+              </Switch.Group>
               <a
                 href={getExportUrl(currentSession.session_id, 'markdown', { includeThinking })}
                 download

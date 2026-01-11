@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Disclosure, Transition } from '@headlessui/react';
 import { User, Bot, Wrench, ChevronDown, ChevronRight, Clock, Copy } from 'lucide-react';
 import type { TimelineEvent as TimelineEventType, SessionDetail } from '@/services/types';
 import { formatTime } from '@/utils/formatters';
@@ -18,7 +19,6 @@ interface TimelineEventProps {
 }
 
 export function TimelineEvent({ event, session, isActive = false, onCopySuccess, onCopyError }: TimelineEventProps) {
-  const [expanded, setExpanded] = useState(false);
   const [copying, setCopying] = useState(false);
   const bookmarkStore = useBookmarkStore();
   const bookmark = bookmarkStore.bookmarksByEventId.get(`${session.session_id}:${event.id}`);
@@ -73,32 +73,42 @@ export function TimelineEvent({ event, session, isActive = false, onCopySuccess,
   const renderContent = () => {
     if (event.type === 'tool_use') {
       return (
-        <div>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-2 w-full text-left"
-          >
-            {expanded ? (
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            )}
-            <span className="font-mono text-sm font-medium text-gray-900 dark:text-white">
-              {event.tool_name}
-            </span>
-            {event.files_affected.length > 0 ? (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                ({event.files_affected.length} files)
-              </span>
-            ) : null}
-          </button>
+        <Disclosure>
+          {({ open }) => (
+            <div>
+              <Disclosure.Button className="flex items-center gap-2 w-full text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 rounded">
+                {open ? (
+                  <ChevronDown className="w-4 h-4 text-gray-400 transition-transform" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-gray-400 transition-transform" />
+                )}
+                <span className="font-mono text-sm font-medium text-gray-900 dark:text-white">
+                  {event.tool_name}
+                </span>
+                {event.files_affected.length > 0 ? (
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    ({event.files_affected.length} files)
+                  </span>
+                ) : null}
+              </Disclosure.Button>
 
-          {expanded && event.tool_input ? (
-            <div className="mt-2 ml-6">
-              <ToolInputDisplay toolName={event.tool_name!} input={event.tool_input} />
+              <Transition
+                enter="transition duration-100 ease-out"
+                enterFrom="transform opacity-0 -translate-y-1"
+                enterTo="transform opacity-100 translate-y-0"
+                leave="transition duration-75 ease-in"
+                leaveFrom="transform opacity-100 translate-y-0"
+                leaveTo="transform opacity-0 -translate-y-1"
+              >
+                <Disclosure.Panel className="mt-2 ml-6">
+                  {event.tool_input && (
+                    <ToolInputDisplay toolName={event.tool_name!} input={event.tool_input} />
+                  )}
+                </Disclosure.Panel>
+              </Transition>
             </div>
-          ) : null}
-        </div>
+          )}
+        </Disclosure>
       );
     }
 
@@ -107,53 +117,71 @@ export function TimelineEvent({ event, session, isActive = false, onCopySuccess,
         ? event.content.slice(0, 2000) + '\n... [truncated]'
         : event.content || '';
       return (
-        <div>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-2 w-full text-left"
-          >
-            {expanded ? (
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            )}
-            <span className="text-sm text-gray-600 dark:text-gray-400">Tool Result</span>
-          </button>
+        <Disclosure>
+          {({ open }) => (
+            <div>
+              <Disclosure.Button className="flex items-center gap-2 w-full text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 rounded">
+                {open ? (
+                  <ChevronDown className="w-4 h-4 text-gray-400 transition-transform" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-gray-400 transition-transform" />
+                )}
+                <span className="text-sm text-gray-600 dark:text-gray-400">Tool Result</span>
+              </Disclosure.Button>
 
-          {expanded && event.content ? (
-            <div className="mt-2 ml-6 max-h-64 overflow-y-auto rounded">
-              <CodeBlock code={displayContent} className="text-xs" />
+              <Transition
+                enter="transition duration-100 ease-out"
+                enterFrom="transform opacity-0 -translate-y-1"
+                enterTo="transform opacity-100 translate-y-0"
+                leave="transition duration-75 ease-in"
+                leaveFrom="transform opacity-100 translate-y-0"
+                leaveTo="transform opacity-0 -translate-y-1"
+              >
+                <Disclosure.Panel className="mt-2 ml-6 max-h-64 overflow-y-auto rounded">
+                  {event.content && <CodeBlock code={displayContent} className="text-xs" />}
+                </Disclosure.Panel>
+              </Transition>
             </div>
-          ) : null}
-        </div>
+          )}
+        </Disclosure>
       );
     }
 
     if (event.type === 'thinking') {
       return (
-        <div>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-2 w-full text-left"
-          >
-            {expanded ? (
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            )}
-            <span className="text-sm text-gray-500 dark:text-gray-400 italic">Thinking...</span>
-          </button>
+        <Disclosure>
+          {({ open }) => (
+            <div>
+              <Disclosure.Button className="flex items-center gap-2 w-full text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 rounded">
+                {open ? (
+                  <ChevronDown className="w-4 h-4 text-gray-400 transition-transform" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-gray-400 transition-transform" />
+                )}
+                <span className="text-sm text-gray-500 dark:text-gray-400 italic">Thinking...</span>
+              </Disclosure.Button>
 
-          {expanded && event.content ? (
-            <div className="mt-2 ml-6">
-              <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                {event.content.length > 2000
-                  ? event.content.slice(0, 2000) + '\n... [truncated]'
-                  : event.content}
-              </div>
+              <Transition
+                enter="transition duration-100 ease-out"
+                enterFrom="transform opacity-0 -translate-y-1"
+                enterTo="transform opacity-100 translate-y-0"
+                leave="transition duration-75 ease-in"
+                leaveFrom="transform opacity-100 translate-y-0"
+                leaveTo="transform opacity-0 -translate-y-1"
+              >
+                <Disclosure.Panel className="mt-2 ml-6">
+                  {event.content && (
+                    <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                      {event.content.length > 2000
+                        ? event.content.slice(0, 2000) + '\n... [truncated]'
+                        : event.content}
+                    </div>
+                  )}
+                </Disclosure.Panel>
+              </Transition>
             </div>
-          ) : null}
-        </div>
+          )}
+        </Disclosure>
       );
     }
 

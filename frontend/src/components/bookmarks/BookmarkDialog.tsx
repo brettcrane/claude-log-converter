@@ -3,6 +3,7 @@ import { Dialog, Transition, Listbox } from '@headlessui/react';
 import { X, Check, ChevronDown } from 'lucide-react';
 import type { TimelineEvent, SessionDetail, Bookmark } from '@/services/types';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface BookmarkDialogProps {
   event: TimelineEvent;
@@ -32,6 +33,7 @@ export function BookmarkDialog({ event, session, onClose, bookmark }: BookmarkDi
   const [category, setCategory] = useState(existingBookmark?.category || 'general');
   const [note, setNote] = useState(existingBookmark?.note || '');
   const [saving, setSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleClose = () => {
     setIsOpen(false);
@@ -61,21 +63,26 @@ export function BookmarkDialog({ event, session, onClose, bookmark }: BookmarkDi
     }
   };
 
-  const handleDelete = async () => {
-    if (existingBookmark && confirm('Delete this bookmark?')) {
-      setSaving(true);
-      try {
-        await bookmarkStore.deleteBookmarkById(existingBookmark.id);
-        handleClose();
-      } catch (error) {
-        console.error('Failed to delete bookmark:', error);
-      } finally {
-        setSaving(false);
-      }
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!existingBookmark) return;
+    setSaving(true);
+    try {
+      await bookmarkStore.deleteBookmarkById(existingBookmark.id);
+      setShowDeleteConfirm(false);
+      handleClose();
+    } catch (error) {
+      console.error('Failed to delete bookmark:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
+    <>
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={handleClose}>
         <Transition.Child
@@ -249,5 +256,17 @@ export function BookmarkDialog({ event, session, onClose, bookmark }: BookmarkDi
         </div>
       </Dialog>
     </Transition>
+
+    <ConfirmDialog
+      isOpen={showDeleteConfirm}
+      onClose={() => setShowDeleteConfirm(false)}
+      onConfirm={confirmDelete}
+      title="Delete Bookmark"
+      message="Are you sure you want to delete this bookmark? This action cannot be undone."
+      confirmLabel="Delete"
+      variant="danger"
+      loading={saving}
+    />
+    </>
   );
 }

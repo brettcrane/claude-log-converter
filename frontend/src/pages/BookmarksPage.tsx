@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Loader2, Search, X, ChevronDown } from 'lucide-react';
+import { useEffect, useState, Fragment } from 'react';
+import { Menu, Listbox, Transition } from '@headlessui/react';
+import { Loader2, Search, X, ChevronDown, Check } from 'lucide-react';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { BookmarkList } from '@/components/bookmarks/BookmarkList';
 import { BookmarkDialog } from '@/components/bookmarks/BookmarkDialog';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { Bookmark, SessionDetail, TimelineEvent } from '@/services/types';
 import { useSessionStore } from '@/stores/sessionStore';
 
@@ -28,7 +30,6 @@ export function BookmarksPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedSort, setSelectedSort] = useState('created_at-desc');
-  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
 
   // For editing bookmarks
   const [editingBookmark, setEditingBookmark] = useState<{
@@ -36,6 +37,10 @@ export function BookmarksPage() {
     event: TimelineEvent;
     session: SessionDetail;
   } | null>(null);
+
+  // For delete confirmation
+  const [deletingBookmark, setDeletingBookmark] = useState<Bookmark | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Load bookmarks on mount
   useEffect(() => {
@@ -71,15 +76,23 @@ export function BookmarksPage() {
     setEditingBookmark({ bookmark, event, session });
   };
 
-  const handleDelete = async (bookmark: Bookmark) => {
-    if (confirm('Delete this bookmark?')) {
-      await bookmarkStore.deleteBookmarkById(bookmark.id);
+  const handleDelete = (bookmark: Bookmark) => {
+    setDeletingBookmark(bookmark);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingBookmark) return;
+    setDeleting(true);
+    try {
+      await bookmarkStore.deleteBookmarkById(deletingBookmark.id);
+      setDeletingBookmark(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
   const handleSortChange = (value: string) => {
     setSelectedSort(value);
-    setSortDropdownOpen(false);
   };
 
   return (
@@ -113,43 +126,83 @@ export function BookmarksPage() {
           </div>
 
           {/* Category Filter */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
-          >
-            {CATEGORIES.map((cat) => (
-              <option key={cat.value} value={cat.value}>
-                {cat.label}
-              </option>
-            ))}
-          </select>
+          <Listbox value={selectedCategory} onChange={setSelectedCategory}>
+            <div className="relative">
+              <Listbox.Button className="flex items-center gap-2 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 min-w-[160px] text-left">
+                <span className="flex-1">{CATEGORIES.find(c => c.value === selectedCategory)?.label}</span>
+                <ChevronDown className="w-4 h-4 flex-shrink-0" />
+              </Listbox.Button>
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+              >
+                <Listbox.Options className="absolute top-full mt-1 left-0 bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-md shadow-lg z-10 min-w-[160px] focus:outline-none max-h-60 overflow-auto">
+                  {CATEGORIES.map((cat) => (
+                    <Listbox.Option
+                      key={cat.value}
+                      value={cat.value}
+                      className={({ active }) =>
+                        `px-4 py-2 text-sm cursor-pointer flex items-center justify-between ${
+                          active ? 'bg-gray-100 dark:bg-gray-600' : ''
+                        }`
+                      }
+                    >
+                      {({ selected }) => (
+                        <>
+                          <span className={selected ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-white'}>
+                            {cat.label}
+                          </span>
+                          {selected && <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
+                        </>
+                      )}
+                    </Listbox.Option>
+                  ))}
+                </Listbox.Options>
+              </Transition>
+            </div>
+          </Listbox>
 
           {/* Sort Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-              className="flex items-center gap-2 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm hover:bg-gray-50 dark:hover:bg-gray-600"
-            >
+          <Menu as="div" className="relative">
+            <Menu.Button className="flex items-center gap-2 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
               Sort: {SORT_OPTIONS.find(o => o.value === selectedSort)?.label}
               <ChevronDown className="w-4 h-4" />
-            </button>
-            {sortDropdownOpen && (
-              <div className="absolute top-full mt-1 right-0 bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-md shadow-lg z-10 min-w-[200px]">
+            </Menu.Button>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <Menu.Items className="absolute top-full mt-1 right-0 bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-md shadow-lg z-10 min-w-[200px] focus:outline-none">
                 {SORT_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => handleSortChange(option.value)}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 ${
-                      selectedSort === option.value ? 'bg-gray-50 dark:bg-gray-600' : ''
-                    }`}
-                  >
-                    {option.label}
-                  </button>
+                  <Menu.Item key={option.value}>
+                    {({ active }) => (
+                      <button
+                        onClick={() => handleSortChange(option.value)}
+                        className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
+                          active ? 'bg-gray-100 dark:bg-gray-600' : ''
+                        } ${selectedSort === option.value ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-white'}`}
+                      >
+                        {option.label}
+                        {selectedSort === option.value && (
+                          <Check className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                  </Menu.Item>
                 ))}
-              </div>
-            )}
-          </div>
+              </Menu.Items>
+            </Transition>
+          </Menu>
         </div>
 
         {/* Count */}
@@ -197,6 +250,18 @@ export function BookmarksPage() {
           }}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deletingBookmark}
+        onClose={() => setDeletingBookmark(null)}
+        onConfirm={confirmDelete}
+        title="Delete Bookmark"
+        message="Are you sure you want to delete this bookmark? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 }
