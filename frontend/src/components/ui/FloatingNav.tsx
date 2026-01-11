@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Transition } from '@headlessui/react';
 import { ArrowLeft, ChevronUp } from 'lucide-react';
 
 interface FloatingNavProps {
@@ -37,42 +38,53 @@ export function FloatingNav({ scrollContainerRef, threshold = 200 }: FloatingNav
     navigate('/');
   };
 
-  if (!isVisible) return null;
-
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2">
-      {/* Scroll to top */}
-      <button
-        onClick={scrollToTop}
-        className="
-          p-3 rounded-full
-          bg-white dark:bg-gray-800
-          border border-gray-200 dark:border-gray-700
-          shadow-lg hover:shadow-xl
-          text-gray-600 dark:text-gray-300
-          hover:text-gray-900 dark:hover:text-white
-          hover:bg-gray-50 dark:hover:bg-gray-700
-          transition-all duration-200
-        "
-        title="Scroll to top"
-      >
-        <ChevronUp className="w-5 h-5" />
-      </button>
+    <Transition
+      show={isVisible}
+      as={Fragment}
+      enter="transition ease-out duration-200"
+      enterFrom="opacity-0 translate-y-4"
+      enterTo="opacity-100 translate-y-0"
+      leave="transition ease-in duration-150"
+      leaveFrom="opacity-100 translate-y-0"
+      leaveTo="opacity-0 translate-y-4"
+    >
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2">
+        {/* Scroll to top */}
+        <button
+          onClick={scrollToTop}
+          className="
+            p-3 rounded-full
+            bg-white dark:bg-gray-800
+            border border-gray-200 dark:border-gray-700
+            shadow-lg hover:shadow-xl
+            text-gray-600 dark:text-gray-300
+            hover:text-gray-900 dark:hover:text-white
+            hover:bg-gray-50 dark:hover:bg-gray-700
+            transition-all duration-200
+            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+          "
+          title="Scroll to top"
+        >
+          <ChevronUp className="w-5 h-5" />
+        </button>
 
-      {/* Back to sessions */}
-      <button
-        onClick={goBack}
-        className="
-          p-3 rounded-full
-          bg-indigo-600 hover:bg-indigo-700
-          text-white
-          shadow-lg hover:shadow-xl
-          transition-all duration-200
-        "
-        title="Back to sessions"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
-    </div>
+        {/* Back to sessions */}
+        <button
+          onClick={goBack}
+          className="
+            p-3 rounded-full
+            bg-indigo-600 hover:bg-indigo-700
+            text-white
+            shadow-lg hover:shadow-xl
+            transition-all duration-200
+            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+          "
+          title="Back to sessions"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+      </div>
+    </Transition>
   );
 }
