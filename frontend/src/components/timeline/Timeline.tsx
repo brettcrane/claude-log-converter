@@ -3,6 +3,69 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { Filter, ChevronDown, Search, X, ChevronUp, ChevronDown as ChevronDownIcon } from 'lucide-react';
 import type { TimelineEvent as TimelineEventType } from '@/services/types';
 import { TimelineEvent } from './TimelineEvent';
+import { EventGroup } from './EventGroup';
+
+// Represents either a single event or a group of events
+type TimelineItem =
+  | { type: 'single'; event: TimelineEventType; originalIndex: number }
+  | { type: 'group'; events: TimelineEventType[]; groupType: 'tool_use' | 'tool_result'; toolName?: string; originalIndices: number[] };
+
+// Group consecutive tool events together
+function groupEvents(events: TimelineEventType[]): TimelineItem[] {
+  const items: TimelineItem[] = [];
+  let i = 0;
+
+  while (i < events.length) {
+    const event = events[i];
+
+    // Only group tool_use and tool_result events
+    if (event.type === 'tool_use' || event.type === 'tool_result') {
+      const groupType = event.type;
+      const toolName = event.type === 'tool_use' ? event.tool_name || undefined : undefined;
+      const groupEvents: TimelineEventType[] = [event];
+      const groupIndices: number[] = [i];
+
+      // Look ahead for consecutive same-type events
+      let j = i + 1;
+      while (j < events.length) {
+        const nextEvent = events[j];
+        // For tool_use, group by same tool_name; for tool_result, just group consecutive results
+        const shouldGroup =
+          nextEvent.type === groupType &&
+          (groupType === 'tool_result' || nextEvent.tool_name === toolName);
+
+        if (shouldGroup) {
+          groupEvents.push(nextEvent);
+          groupIndices.push(j);
+          j++;
+        } else {
+          break;
+        }
+      }
+
+      // Only create a group if there are 2+ events
+      if (groupEvents.length >= 2) {
+        items.push({
+          type: 'group',
+          events: groupEvents,
+          groupType,
+          toolName,
+          originalIndices: groupIndices,
+        });
+      } else {
+        items.push({ type: 'single', event, originalIndex: i });
+      }
+
+      i = j;
+    } else {
+      // User, assistant, thinking - keep as single items
+      items.push({ type: 'single', event, originalIndex: i });
+      i++;
+    }
+  }
+
+  return items;
+}
 
 interface TimelineProps {
   events: TimelineEventType[];
@@ -31,20 +94,37 @@ export function Timeline({ events }: TimelineProps) {
 
   const filteredEvents = events.filter((e) => selectedTypes.has(e.type));
 
-  // Find matching event indices
+  // Group consecutive tool events
+  const groupedItems = useMemo(() => groupEvents(filteredEvents), [filteredEvents]);
+
+  // Find matching item indices (for search)
   const searchMatches = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
     const matches: number[] = [];
-    filteredEvents.forEach((event, index) => {
-      const content = event.content?.toLowerCase() || '';
-      const toolInput = event.tool_input ? JSON.stringify(event.tool_input).toLowerCase() : '';
-      if (content.includes(query) || toolInput.includes(query)) {
-        matches.push(index);
+
+    groupedItems.forEach((item, index) => {
+      if (item.type === 'single') {
+        const content = item.event.content?.toLowerCase() || '';
+        const toolInput = item.event.tool_input ? JSON.stringify(item.event.tool_input).toLowerCase() : '';
+        if (content.includes(query) || toolInput.includes(query)) {
+          matches.push(index);
+        }
+      } else {
+        // Check if any event in the group matches
+        const hasMatch = item.events.some((event) => {
+          const content = event.content?.toLowerCase() || '';
+          const toolInput = event.tool_input ? JSON.stringify(event.tool_input).toLowerCase() : '';
+          return content.includes(query) || toolInput.includes(query);
+        });
+        if (hasMatch) {
+          matches.push(index);
+        }
       }
     });
+
     return matches;
-  }, [filteredEvents, searchQuery]);
+  }, [groupedItems, searchQuery]);
 
   // Reset current match when search changes
   useEffect(() => {
@@ -52,7 +132,7 @@ export function Timeline({ events }: TimelineProps) {
   }, [searchQuery]);
 
   const virtualizer = useVirtualizer({
-    count: filteredEvents.length,
+    count: groupedItems.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 150,
     overscan: 5,
@@ -272,9 +352,10 @@ export function Timeline({ events }: TimelineProps) {
           }}
         >
           {virtualizer.getVirtualItems().map((virtualItem) => {
-            const event = filteredEvents[virtualItem.index];
+            const item = groupedItems[virtualItem.index];
             const isMatch = matchingEventIndices.has(virtualItem.index);
             const isCurrentMatch = virtualItem.index === currentMatchEventIndex;
+
             return (
               <div
                 key={virtualItem.key}
@@ -288,9 +369,20 @@ export function Timeline({ events }: TimelineProps) {
                 data-index={virtualItem.index}
                 ref={virtualizer.measureElement}
               >
-                <div className={`px-4 ${isCurrentMatch ? 'bg-yellow-100 dark:bg-yellow-900/30' : isMatch ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''}`}>
-                  <TimelineEvent event={event} searchQuery={searchQuery} />
-                </div>
+                {item.type === 'single' ? (
+                  <div className={`px-4 ${isCurrentMatch ? 'bg-yellow-100 dark:bg-yellow-900/30' : isMatch ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''}`}>
+                    <TimelineEvent event={item.event} searchQuery={searchQuery} />
+                  </div>
+                ) : (
+                  <EventGroup
+                    events={item.events}
+                    groupType={item.groupType}
+                    toolName={item.toolName}
+                    searchQuery={searchQuery}
+                    isMatch={isMatch}
+                    isCurrentMatch={isCurrentMatch}
+                  />
+                )}
               </div>
             );
           })}

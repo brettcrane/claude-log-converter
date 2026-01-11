@@ -5,7 +5,7 @@
 ### UX & Timeline Improvements
 - [x] ~~Add syntax highlighting to code blocks in timeline~~ (completed - using prism-react-renderer)
 - [x] ~~In-session search (Ctrl+F)~~ (completed - floating search bar with match highlighting, prev/next, Enter/Shift+Enter)
-- [ ] Collapsible event groups - group consecutive tool calls (e.g., "5 file reads" collapsed by default)
+- [x] ~~Collapsible event groups~~ (completed - groups consecutive tool calls, collapsed by default)
 - [ ] Sticky event headers - keep "Assistant • 2:34 PM" pinned while scrolling through long responses
 - [ ] Copy event to clipboard - button to copy individual event (formatted) for sharing
 
@@ -60,6 +60,7 @@
 ## Completed
 
 ### 2026-01-11
+- [x] **Collapsible event groups** - Groups consecutive tool calls (e.g., "5 file reads") collapsed by default, with expand/collapse, tool-specific icons, and file path previews
 - [x] **In-session search (Ctrl+F)** - Floating search bar with match highlighting, prev/next navigation (Enter/Shift+Enter), auto-scroll to matches, yellow highlight for matching events
 - [x] **Project filtering fix** - Sidebar project clicks now filter sessions correctly, shows loading spinner, displays project badge with clear button
 - [x] **Syntax highlighting for code blocks** - Added prism-react-renderer with oneDark theme; highlights code in messages, Write/Edit tools, and tool results; auto-detects language from file extensions
