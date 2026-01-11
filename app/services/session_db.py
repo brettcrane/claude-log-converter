@@ -285,8 +285,12 @@ class SessionDatabase:
                             OR cwd LIKE ?
                         )
                     """)
+                    # Escape FTS5 special characters by wrapping in double quotes
+                    # This treats the search as a literal phrase, avoiding syntax errors
+                    # from characters like (, ), *, etc.
+                    search_escaped = '"' + search.replace('"', '""') + '"'
                     search_pattern = f"%{search}%"
-                    params.extend([search, search_pattern, search_pattern, search_pattern])
+                    params.extend([search_escaped, search_pattern, search_pattern, search_pattern])
 
                 where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
