@@ -4,6 +4,7 @@ import { Filter, ChevronDown, Search, X, ChevronUp, ChevronDown as ChevronDownIc
 import type { TimelineEvent as TimelineEventType } from '@/services/types';
 import { TimelineEvent } from './TimelineEvent';
 import { EventGroup } from './EventGroup';
+import { FloatingContextBadge } from './FloatingContextBadge';
 
 // Represents either a single event or a group of events
 type TimelineItem =
@@ -91,6 +92,10 @@ export function Timeline({ events }: TimelineProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+
+  // Active event tracking for floating badge and rail highlight
+  const [activeEventType, setActiveEventType] = useState<string | null>(null);
+  const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
 
   const filteredEvents = events.filter((e) => selectedTypes.has(e.type));
 
@@ -197,6 +202,63 @@ export function Timeline({ events }: TimelineProps) {
       scrollToMatch(0);
     }
   }, [searchMatches, scrollToMatch]);
+
+  // Track active event using IntersectionObserver
+  useEffect(() => {
+    const scrollContainer = parentRef.current;
+    if (!scrollContainer) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Find the entry that's most visible at the top
+        const topMostEntry = entries
+          .filter(entry => entry.isIntersecting)
+          .reduce<IntersectionObserverEntry | null>((best, entry) => {
+            if (!best || entry.intersectionRatio > best.intersectionRatio) {
+              return entry;
+            }
+            return best;
+          }, null);
+
+        if (topMostEntry) {
+          const target = topMostEntry.target as Element;
+          const index = parseInt(target.getAttribute('data-index') || '0');
+          const item = groupedItems[index];
+          if (item) {
+            setActiveItemIndex(index);
+            if (item.type === 'single') {
+              setActiveEventType(item.event.type);
+            } else {
+              // For groups, use the group type
+              setActiveEventType(item.groupType);
+            }
+          }
+        }
+      },
+      {
+        root: scrollContainer,
+        rootMargin: '-20% 0px -70% 0px', // Track items in top 30% of viewport
+        threshold: [0, 0.1, 0.5, 1],
+      }
+    );
+
+    // Observe all visible items
+    const observeElements = () => {
+      const elements = scrollContainer.querySelectorAll('[data-index]');
+      elements.forEach((el) => observer.observe(el));
+    };
+
+    // Initial observation
+    observeElements();
+
+    // Re-observe when virtual items change (debounced)
+    const timeoutId = setTimeout(observeElements, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      observer.disconnect();
+    };
+  }, [groupedItems, virtualizer]);
 
   const toggleType = (type: string) => {
     const newSet = new Set(selectedTypes);
@@ -371,7 +433,11 @@ export function Timeline({ events }: TimelineProps) {
               >
                 {item.type === 'single' ? (
                   <div className={`px-4 ${isCurrentMatch ? 'bg-yellow-100 dark:bg-yellow-900/30' : isMatch ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''}`}>
-                    <TimelineEvent event={item.event} searchQuery={searchQuery} />
+                    <TimelineEvent
+                      event={item.event}
+                      searchQuery={searchQuery}
+                      isActive={virtualItem.index === activeItemIndex}
+                    />
                   </div>
                 ) : (
                   <EventGroup
@@ -381,6 +447,7 @@ export function Timeline({ events }: TimelineProps) {
                     searchQuery={searchQuery}
                     isMatch={isMatch}
                     isCurrentMatch={isCurrentMatch}
+                    isActive={virtualItem.index === activeItemIndex}
                   />
                 )}
               </div>
@@ -388,6 +455,8 @@ export function Timeline({ events }: TimelineProps) {
           })}
         </div>
       </div>
+
+      <FloatingContextBadge eventType={activeEventType} />
     </div>
   );
 }
