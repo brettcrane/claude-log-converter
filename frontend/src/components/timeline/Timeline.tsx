@@ -171,7 +171,10 @@ export function Timeline({ events }: TimelineProps) {
     if (searchMatches.length === 0) return;
     const eventIndex = searchMatches[matchIdx];
     if (eventIndex !== undefined) {
-      virtualizer.scrollToIndex(eventIndex, { align: 'start' });
+      // Use setTimeout to ensure virtualizer has measured elements
+      setTimeout(() => {
+        virtualizer.scrollToIndex(eventIndex, { align: 'center', behavior: 'smooth' });
+      }, 0);
     }
   }, [searchMatches, virtualizer]);
 

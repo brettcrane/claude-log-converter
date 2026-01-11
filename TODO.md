@@ -9,15 +9,13 @@
 - [x] ~~Sticky event headers~~ (completed as floating context badge - traditional sticky headers don't work with virtual scrolling)
 - [x] ~~Copy event to clipboard~~ (completed - button copies individual event as markdown with toast feedback)
 
-### Session List
-- [ ] Event type icons in session cards - small icons showing activity types (edits, bash, etc.)
-
 ### Architecture
 - [x] ~~SQLite backend - replace file-based caching for faster FTS5 search, persistent metadata, tags storage~~ (completed - hybrid approach with JSONL as source of truth)
 
 ## Low Priority / Future Consideration
 
 ### UX
+- [ ] Event type icons in session cards - small icons showing activity types (edits, bash, etc.)
 - [ ] Improved diff viewer (side-by-side view with synchronized scrolling)
 - [ ] Keyboard shortcuts (j/k navigation, Enter expand/collapse, / to search, Esc close, [/] switch tabs)
 - [ ] Session bookmarks/annotations - mark important moments with persistent anchors
