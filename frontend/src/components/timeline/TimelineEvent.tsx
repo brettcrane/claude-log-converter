@@ -8,9 +8,10 @@ import { CodeBlock } from '@/components/ui/CodeBlock';
 interface TimelineEventProps {
   event: TimelineEventType;
   searchQuery?: string;
+  isActive?: boolean;
 }
 
-export function TimelineEvent({ event, searchQuery }: TimelineEventProps) {
+export function TimelineEvent({ event, searchQuery, isActive = false }: TimelineEventProps) {
   const [expanded, setExpanded] = useState(false);
 
   const getEventIcon = () => {
@@ -144,7 +145,11 @@ export function TimelineEvent({ event, searchQuery }: TimelineEventProps) {
   };
 
   return (
-    <div className={`border-l-4 ${getEventColor()} pl-4 py-3`}>
+    <div
+      className={`border-l-4 ${getEventColor()} pl-4 py-3 transition-all duration-200 ${
+        isActive ? 'border-l-8 bg-gradient-to-r from-gray-50/50 to-transparent dark:from-gray-800/30' : ''
+      }`}
+    >
       <div className="flex items-center gap-2 mb-2">
         {getEventIcon()}
         <span className="font-medium capitalize text-gray-900 dark:text-white text-sm">

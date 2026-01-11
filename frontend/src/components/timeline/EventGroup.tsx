@@ -10,6 +10,7 @@ interface EventGroupProps {
   searchQuery?: string;
   isMatch?: boolean;
   isCurrentMatch?: boolean;
+  isActive?: boolean;
 }
 
 // Get an appropriate icon for the tool type
@@ -76,7 +77,7 @@ function getFilePaths(events: TimelineEventType[]): string[] {
   return paths;
 }
 
-export function EventGroup({ events, groupType, toolName, searchQuery, isMatch, isCurrentMatch }: EventGroupProps) {
+export function EventGroup({ events, groupType, toolName, searchQuery, isMatch, isCurrentMatch, isActive = false }: EventGroupProps) {
   const [expanded, setExpanded] = useState(false);
 
   const Icon = toolName ? getToolIcon(toolName) : Wrench;
@@ -91,7 +92,11 @@ export function EventGroup({ events, groupType, toolName, searchQuery, isMatch, 
 
   return (
     <div className={`px-4 ${bgClass}`}>
-      <div className="border-l-4 border-l-gray-400 pl-4 py-3">
+      <div
+        className={`border-l-4 border-l-gray-400 pl-4 py-3 transition-all duration-200 ${
+          isActive ? 'border-l-8 bg-gradient-to-r from-gray-50/50 to-transparent dark:from-gray-800/30' : ''
+        }`}
+      >
         <button
           onClick={() => setExpanded(!expanded)}
           className="w-full flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded px-2 py-1 -ml-2 text-left"
