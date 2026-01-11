@@ -166,32 +166,18 @@ export function Timeline({ events }: TimelineProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [searchOpen]);
 
-  // Scroll to current match
-  const scrollToMatch = useCallback((matchIdx: number) => {
-    if (searchMatches.length === 0) return;
-    const eventIndex = searchMatches[matchIdx];
-    if (eventIndex !== undefined) {
-      // Use setTimeout to ensure virtualizer has measured elements
-      setTimeout(() => {
-        virtualizer.scrollToIndex(eventIndex, { align: 'center', behavior: 'smooth' });
-      }, 0);
-    }
-  }, [searchMatches, virtualizer]);
-
   // Navigate to next/previous match
   const goToNextMatch = useCallback(() => {
     if (searchMatches.length === 0) return;
     const nextIndex = (currentMatchIndex + 1) % searchMatches.length;
     setCurrentMatchIndex(nextIndex);
-    scrollToMatch(nextIndex);
-  }, [currentMatchIndex, searchMatches.length, scrollToMatch]);
+  }, [currentMatchIndex, searchMatches.length]);
 
   const goToPrevMatch = useCallback(() => {
     if (searchMatches.length === 0) return;
     const prevIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
     setCurrentMatchIndex(prevIndex);
-    scrollToMatch(prevIndex);
-  }, [currentMatchIndex, searchMatches.length, scrollToMatch]);
+  }, [currentMatchIndex, searchMatches.length]);
 
   // Handle Enter key in search input
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -205,12 +191,33 @@ export function Timeline({ events }: TimelineProps) {
     }
   };
 
-  // Scroll to first match when search query changes and has results
+  // Scroll to current match whenever it changes
+  // Using useEffect ensures we scroll after render when virtualizer is ready
   useEffect(() => {
-    if (searchMatches.length > 0) {
-      scrollToMatch(0);
-    }
-  }, [searchMatches, scrollToMatch]);
+    if (searchMatches.length === 0) return;
+    const eventIndex = searchMatches[currentMatchIndex];
+    if (eventIndex === undefined) return;
+
+    const scrollContainer = parentRef.current;
+    if (!scrollContainer) return;
+
+    // First scroll to bring item into view, then adjust to center it
+    // Using two frames ensures measurements are accurate after initial scroll
+    virtualizer.scrollToIndex(eventIndex, { align: 'start' });
+
+    // After initial scroll, get accurate position and center properly
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const items = virtualizer.getVirtualItems();
+        const targetItem = items.find(item => item.index === eventIndex);
+        if (targetItem) {
+          const containerHeight = scrollContainer.clientHeight;
+          const scrollTop = targetItem.start - (containerHeight / 2) + (targetItem.size / 2);
+          scrollContainer.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' });
+        }
+      });
+    });
+  }, [currentMatchIndex, searchMatches, virtualizer]);
 
   // Track active event using window scroll position
   // Since the layout allows window scrolling, we use window.scrollY
