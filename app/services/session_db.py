@@ -494,11 +494,14 @@ class SessionDatabase:
                     if current_mtime > indexed_mtime:
                         stale_files.append(file_path)
 
-            # Find new files not in index
+            # Find new files not in index (only top-level JSONL files in project dirs)
             if projects_dir.exists():
-                for jsonl_file in projects_dir.rglob("*.jsonl"):
-                    if str(jsonl_file) not in indexed_files:
-                        stale_files.append(jsonl_file)
+                for project_dir in projects_dir.iterdir():
+                    if not project_dir.is_dir() or project_dir.name.startswith("."):
+                        continue
+                    for jsonl_file in project_dir.glob("*.jsonl"):
+                        if str(jsonl_file) not in indexed_files:
+                            stale_files.append(jsonl_file)
 
             logger.debug(f"Found {len(stale_files)} stale/new session files")
             return stale_files
@@ -586,12 +589,43 @@ class SessionDatabase:
 
         Example: '-home-brett-crane-code-app' -> '/home/brett-crane/code/app'
 
+        Uses filesystem validation to handle dashes in directory names.
+        Falls back to simple replacement if path doesn't exist.
+
         Args:
             encoded_name: Encoded directory name
 
         Returns:
             Decoded absolute path
         """
-        if encoded_name.startswith("-"):
-            return "/" + encoded_name[1:].replace("-", "/")
-        return encoded_name.replace("-", "/")
+        if not encoded_name.startswith("-"):
+            return encoded_name.replace("-", "/")
+
+        # Split into segments (skip leading empty string from split)
+        segments = encoded_name[1:].split("-")
+        if not segments:
+            return "/"
+
+        # Greedily reconstruct path by checking filesystem
+        decoded_parts = []
+        current_segment = ""
+
+        for i, segment in enumerate(segments):
+            if current_segment:
+                current_segment += "-" + segment
+            else:
+                current_segment = segment
+
+            # Build potential path so far
+            test_path = "/" + "/".join(decoded_parts + [current_segment])
+
+            # Check if this path exists OR if we're at the last segment
+            if Path(test_path).exists() or i == len(segments) - 1:
+                decoded_parts.append(current_segment)
+                current_segment = ""
+
+        # Handle any remaining segment
+        if current_segment:
+            decoded_parts.append(current_segment)
+
+        return "/" + "/".join(decoded_parts)

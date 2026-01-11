@@ -61,10 +61,40 @@ class SessionIndexer:
         """Decode project directory name to original path.
 
         Example: '-home-brett-crane-code-storycrafter' -> '/home/brett-crane/code/storycrafter'
+
+        Uses filesystem validation to handle dashes in directory names.
         """
-        if encoded_name.startswith("-"):
-            return "/" + encoded_name[1:].replace("-", "/")
-        return encoded_name.replace("-", "/")
+        if not encoded_name.startswith("-"):
+            return encoded_name.replace("-", "/")
+
+        # Split into segments (skip leading empty string from split)
+        segments = encoded_name[1:].split("-")
+        if not segments:
+            return "/"
+
+        # Greedily reconstruct path by checking filesystem
+        decoded_parts = []
+        current_segment = ""
+
+        for i, segment in enumerate(segments):
+            if current_segment:
+                current_segment += "-" + segment
+            else:
+                current_segment = segment
+
+            # Build potential path so far
+            test_path = "/" + "/".join(decoded_parts + [current_segment])
+
+            # Check if this path exists OR if we're at the last segment
+            if Path(test_path).exists() or i == len(segments) - 1:
+                decoded_parts.append(current_segment)
+                current_segment = ""
+
+        # Handle any remaining segment
+        if current_segment:
+            decoded_parts.append(current_segment)
+
+        return "/" + "/".join(decoded_parts)
 
     def _get_project_name(self, encoded_name: str) -> str:
         """Extract just the project name from encoded path."""
