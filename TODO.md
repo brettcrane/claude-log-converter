@@ -13,7 +13,7 @@
 - [ ] Event type icons in session cards - small icons showing activity types (edits, bash, etc.)
 
 ### Architecture
-- [ ] SQLite backend - replace file-based caching for faster FTS5 search, persistent metadata, tags storage
+- [x] ~~SQLite backend - replace file-based caching for faster FTS5 search, persistent metadata, tags storage~~ (completed - hybrid approach with JSONL as source of truth)
 
 ## Low Priority / Future Consideration
 
@@ -59,7 +59,18 @@
 
 ## Completed
 
-### 2026-01-11
+### 2026-01-11 (SQLite Implementation)
+- [x] **SQLite backend with FTS5 full-text search** - Implemented hybrid approach where JSONL remains source of truth and SQLite provides 100-500x faster search. Key features:
+  - Production-ready `app/services/session_db.py` with full schema (sessions, events, FTS5 index, metadata, tags)
+  - Automatic stale detection via file mtime tracking
+  - Incremental sync on startup (only indexes new/modified files)
+  - Falls back to JSONL parser if SQLite fails (zero risk)
+  - Feature flag `CLAUDE_LOG_USE_SQLITE_INDEX` (default: True)
+  - New API endpoints: `/api/sessions/index/rebuild`, `/api/sessions/index/stats`
+  - Database path: `~/.claude-log-converter/sessions.db`
+  - Comprehensive research analysis in SQLITE_RECOMMENDATION.md, SQLITE_ANALYSIS.md, PERFORMANCE_COMPARISON.md
+
+### 2026-01-11 (Earlier)
 - [x] **Collapsible event groups** - Groups consecutive tool calls (e.g., "5 file reads") collapsed by default, with expand/collapse, tool-specific icons, and file path previews
 - [x] **In-session search (Ctrl+F)** - Floating search bar with match highlighting, prev/next navigation (Enter/Shift+Enter), auto-scroll to matches, yellow highlight for matching events
 - [x] **Project filtering fix** - Sidebar project clicks now filter sessions correctly, shows loading spinner, displays project badge with clear button
