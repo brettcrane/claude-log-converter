@@ -8,13 +8,12 @@ import { formatEventAsMarkdown, copyToClipboard } from '@/utils/eventFormatter';
 
 interface TimelineEventProps {
   event: TimelineEventType;
-  searchQuery?: string;
   isActive?: boolean;
   onCopySuccess?: () => void;
   onCopyError?: () => void;
 }
 
-export function TimelineEvent({ event, searchQuery, isActive = false, onCopySuccess, onCopyError }: TimelineEventProps) {
+export function TimelineEvent({ event, isActive = false, onCopySuccess, onCopyError }: TimelineEventProps) {
   const [expanded, setExpanded] = useState(false);
   const [copying, setCopying] = useState(false);
 
@@ -157,7 +156,6 @@ export function TimelineEvent({ event, searchQuery, isActive = false, onCopySucc
         <MarkdownContent
           content={event.content || ''}
           className="text-gray-900 dark:text-gray-100"
-          searchQuery={searchQuery}
         />
       </div>
     );

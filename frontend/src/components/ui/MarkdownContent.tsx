@@ -3,7 +3,6 @@ import { CodeBlock, InlineCode } from './CodeBlock';
 interface MarkdownContentProps {
   content: string;
   className?: string;
-  searchQuery?: string;
 }
 
 interface ContentPart {
@@ -85,41 +84,7 @@ function parseInlineCode(text: string): ContentPart[] {
   return parts;
 }
 
-// Highlight search matches in text
-function highlightMatches(text: string, query: string): React.ReactNode {
-  if (!query.trim()) return text;
-
-  const lowerText = text.toLowerCase();
-  const lowerQuery = query.toLowerCase();
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let matchIndex = lowerText.indexOf(lowerQuery);
-  let keyCounter = 0;
-
-  while (matchIndex !== -1) {
-    // Add text before match
-    if (matchIndex > lastIndex) {
-      parts.push(text.slice(lastIndex, matchIndex));
-    }
-    // Add highlighted match
-    parts.push(
-      <mark key={keyCounter++} className="bg-yellow-300 dark:bg-yellow-600 text-inherit rounded px-0.5">
-        {text.slice(matchIndex, matchIndex + query.length)}
-      </mark>
-    );
-    lastIndex = matchIndex + query.length;
-    matchIndex = lowerText.indexOf(lowerQuery, lastIndex);
-  }
-
-  // Add remaining text
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
-  }
-
-  return parts.length > 0 ? parts : text;
-}
-
-export function MarkdownContent({ content, className = '', searchQuery }: MarkdownContentProps) {
+export function MarkdownContent({ content, className = '' }: MarkdownContentProps) {
   const parts = parseContent(content);
 
   return (
@@ -140,10 +105,10 @@ export function MarkdownContent({ content, className = '', searchQuery }: Markdo
           return <InlineCode key={index}>{part.content}</InlineCode>;
         }
 
-        // Regular text - preserve whitespace and highlight search matches
+        // Regular text - preserve whitespace
         return (
           <span key={index} className="whitespace-pre-wrap">
-            {searchQuery ? highlightMatches(part.content, searchQuery) : part.content}
+            {part.content}
           </span>
         );
       })}

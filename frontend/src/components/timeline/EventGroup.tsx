@@ -7,9 +7,6 @@ interface EventGroupProps {
   events: TimelineEventType[];
   groupType: 'tool_use' | 'tool_result';
   toolName?: string;
-  searchQuery?: string;
-  isMatch?: boolean;
-  isCurrentMatch?: boolean;
   isActive?: boolean;
   onCopySuccess?: () => void;
   onCopyError?: () => void;
@@ -79,21 +76,15 @@ function getFilePaths(events: TimelineEventType[]): string[] {
   return paths;
 }
 
-export function EventGroup({ events, groupType, toolName, searchQuery, isMatch, isCurrentMatch, isActive = false, onCopySuccess, onCopyError }: EventGroupProps) {
+export function EventGroup({ events, groupType, toolName, isActive = false, onCopySuccess, onCopyError }: EventGroupProps) {
   const [expanded, setExpanded] = useState(false);
 
   const Icon = toolName ? getToolIcon(toolName) : Wrench;
   const summary = getGroupSummary(events, groupType, toolName);
   const filePaths = groupType === 'tool_use' ? getFilePaths(events) : [];
 
-  const bgClass = isCurrentMatch
-    ? 'bg-yellow-100 dark:bg-yellow-900/30'
-    : isMatch
-      ? 'bg-yellow-50 dark:bg-yellow-900/10'
-      : '';
-
   return (
-    <div className={`px-4 ${bgClass}`}>
+    <div className="px-4">
       <div
         className={`border-l-4 border-l-gray-400 pl-4 py-3 transition-all duration-200 ${
           isActive ? 'border-l-8 bg-gradient-to-r from-gray-50/50 to-transparent dark:from-gray-800/30' : ''
@@ -128,7 +119,6 @@ export function EventGroup({ events, groupType, toolName, searchQuery, isMatch, 
               <div key={index} className="border-l-2 border-gray-200 dark:border-gray-700 pl-3">
                 <TimelineEvent
                   event={event}
-                  searchQuery={searchQuery}
                   onCopySuccess={onCopySuccess}
                   onCopyError={onCopyError}
                 />
