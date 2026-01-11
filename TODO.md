@@ -6,8 +6,8 @@
 - [x] ~~Add syntax highlighting to code blocks in timeline~~ (completed - using prism-react-renderer)
 - [x] ~~In-session search (Ctrl+F)~~ (completed - floating search bar with match highlighting, prev/next, Enter/Shift+Enter)
 - [x] ~~Collapsible event groups~~ (completed - groups consecutive tool calls, collapsed by default)
+- [x] ~~Copy event to clipboard~~ (completed - button copies individual event as markdown with toast feedback)
 - [ ] Sticky event headers - keep "Assistant • 2:34 PM" pinned while scrolling through long responses
-- [ ] Copy event to clipboard - button to copy individual event (formatted) for sharing
 
 ### Session List
 - [ ] Event type icons in session cards - small icons showing activity types (edits, bash, etc.)
@@ -60,6 +60,7 @@
 ## Completed
 
 ### 2026-01-11
+- [x] **Copy event to clipboard** - Added copy button to each timeline event; copies formatted markdown with timestamps, tool info, and content; includes toast notifications for success/error feedback
 - [x] **Collapsible event groups** - Groups consecutive tool calls (e.g., "5 file reads") collapsed by default, with expand/collapse, tool-specific icons, and file path previews
 - [x] **In-session search (Ctrl+F)** - Floating search bar with match highlighting, prev/next navigation (Enter/Shift+Enter), auto-scroll to matches, yellow highlight for matching events
 - [x] **Project filtering fix** - Sidebar project clicks now filter sessions correctly, shows loading spinner, displays project badge with clear button

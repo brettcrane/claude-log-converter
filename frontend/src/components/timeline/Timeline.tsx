@@ -4,6 +4,7 @@ import { Filter, ChevronDown, Search, X, ChevronUp, ChevronDown as ChevronDownIc
 import type { TimelineEvent as TimelineEventType } from '@/services/types';
 import { TimelineEvent } from './TimelineEvent';
 import { EventGroup } from './EventGroup';
+import { Toast } from '@/components/ui/Toast';
 
 // Represents either a single event or a group of events
 type TimelineItem =
@@ -91,6 +92,11 @@ export function Timeline({ events }: TimelineProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
   const filteredEvents = events.filter((e) => selectedTypes.has(e.type));
 
@@ -215,6 +221,18 @@ export function Timeline({ events }: TimelineProps) {
   const selectNone = () => {
     setSelectedTypes(new Set());
   };
+
+  const handleCopySuccess = useCallback(() => {
+    setToastMessage('Event copied to clipboard');
+    setToastType('success');
+    setShowToast(true);
+  }, []);
+
+  const handleCopyError = useCallback(() => {
+    setToastMessage('Failed to copy event');
+    setToastType('error');
+    setShowToast(true);
+  }, []);
 
   // Create a set of matching event indices for quick lookup
   const matchingEventIndices = useMemo(() => new Set(searchMatches), [searchMatches]);
@@ -371,7 +389,12 @@ export function Timeline({ events }: TimelineProps) {
               >
                 {item.type === 'single' ? (
                   <div className={`px-4 ${isCurrentMatch ? 'bg-yellow-100 dark:bg-yellow-900/30' : isMatch ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''}`}>
-                    <TimelineEvent event={item.event} searchQuery={searchQuery} />
+                    <TimelineEvent
+                      event={item.event}
+                      searchQuery={searchQuery}
+                      onCopySuccess={handleCopySuccess}
+                      onCopyError={handleCopyError}
+                    />
                   </div>
                 ) : (
                   <EventGroup
@@ -381,6 +404,8 @@ export function Timeline({ events }: TimelineProps) {
                     searchQuery={searchQuery}
                     isMatch={isMatch}
                     isCurrentMatch={isCurrentMatch}
+                    onCopySuccess={handleCopySuccess}
+                    onCopyError={handleCopyError}
                   />
                 )}
               </div>
@@ -388,6 +413,14 @@ export function Timeline({ events }: TimelineProps) {
           })}
         </div>
       </div>
+
+      {showToast && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setShowToast(false)}
+        />
+      )}
     </div>
   );
 }

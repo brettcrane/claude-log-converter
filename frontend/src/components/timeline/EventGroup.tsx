@@ -10,6 +10,8 @@ interface EventGroupProps {
   searchQuery?: string;
   isMatch?: boolean;
   isCurrentMatch?: boolean;
+  onCopySuccess?: () => void;
+  onCopyError?: () => void;
 }
 
 // Get an appropriate icon for the tool type
@@ -76,7 +78,7 @@ function getFilePaths(events: TimelineEventType[]): string[] {
   return paths;
 }
 
-export function EventGroup({ events, groupType, toolName, searchQuery, isMatch, isCurrentMatch }: EventGroupProps) {
+export function EventGroup({ events, groupType, toolName, searchQuery, isMatch, isCurrentMatch, onCopySuccess, onCopyError }: EventGroupProps) {
   const [expanded, setExpanded] = useState(false);
 
   const Icon = toolName ? getToolIcon(toolName) : Wrench;
@@ -119,7 +121,12 @@ export function EventGroup({ events, groupType, toolName, searchQuery, isMatch, 
           <div className="mt-2 space-y-2 ml-6">
             {events.map((event, index) => (
               <div key={index} className="border-l-2 border-gray-200 dark:border-gray-700 pl-3">
-                <TimelineEvent event={event} searchQuery={searchQuery} />
+                <TimelineEvent
+                  event={event}
+                  searchQuery={searchQuery}
+                  onCopySuccess={onCopySuccess}
+                  onCopyError={onCopyError}
+                />
               </div>
             ))}
           </div>
