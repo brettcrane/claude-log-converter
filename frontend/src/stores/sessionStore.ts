@@ -41,9 +41,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   sidebarCollapsed: false,
 
   setFilters: (newFilters) => {
-    set((state) => ({
-      filters: { ...state.filters, ...newFilters, offset: 0 },
-    }));
+    set((state) => {
+      const updated = { ...state.filters, ...newFilters, offset: 0 };
+      // Clear sessions and show loading state immediately when filter changes
+      return { filters: updated, sessions: [], total: 0, hasMore: false, loading: true };
+    });
   },
 
   resetFilters: () => {

@@ -1,22 +1,47 @@
 import { useEffect } from 'react';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, X, FolderOpen } from 'lucide-react';
 import { useSessionStore } from '@/stores/sessionStore';
 import { SessionCard } from './SessionCard';
 import { SessionFilters } from './SessionFilters';
 
 export function SessionList() {
-  const { sessions, loading, error, total, hasMore, fetchSessions, fetchMoreSessions, refreshSessions } =
+  const { sessions, loading, error, total, hasMore, filters, projects, setFilters, fetchSessions, fetchMoreSessions, refreshSessions } =
     useSessionStore();
 
+  // Fetch sessions when filters change
   useEffect(() => {
     fetchSessions();
-  }, [fetchSessions]);
+  }, [fetchSessions, filters.project, filters.search, filters.date_from, filters.date_to]);
+
+  // Find the current project name for display
+  const currentProject = filters.project
+    ? projects.find((p) => p.encoded_name === filters.project)
+    : null;
+
+  const clearProjectFilter = () => {
+    setFilters({ project: undefined });
+  };
 
   return (
     <div className="p-4">
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Sessions</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Sessions</h1>
+            {currentProject && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full">
+                <FolderOpen className="w-3.5 h-3.5" />
+                {currentProject.name}
+                <button
+                  onClick={clearProjectFilter}
+                  className="ml-0.5 p-0.5 hover:bg-indigo-200 dark:hover:bg-indigo-800 rounded-full"
+                  title="Clear project filter"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+          </div>
           <button
             onClick={refreshSessions}
             disabled={loading}

@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
-import { FolderOpen, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FolderOpen, ChevronRight, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { useSessionStore } from '@/stores/sessionStore';
 
 export function Sidebar() {
-  const { projects, filters, setFilters, fetchProjects, fetchSessions, sidebarCollapsed } = useSessionStore();
+  const { projects, filters, setFilters, fetchProjects, sidebarCollapsed, toggleSidebar } = useSessionStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProjects();
@@ -11,19 +13,40 @@ export function Sidebar() {
 
   const handleProjectClick = (encodedName: string | null) => {
     setFilters({ project: encodedName || undefined });
-    fetchSessions();
+    navigate('/');
   };
 
   if (sidebarCollapsed) {
-    return null;
+    return (
+      <aside className="w-10 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
+        <div className="p-2">
+          <button
+            onClick={toggleSidebar}
+            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md text-gray-500 dark:text-gray-400"
+            title="Show sidebar"
+          >
+            <PanelLeft className="w-5 h-5" />
+          </button>
+        </div>
+      </aside>
+    );
   }
 
   return (
     <aside className="w-56 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-y-auto flex-shrink-0">
       <div className="p-3">
-        <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-          Projects
-        </h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Projects
+          </h2>
+          <button
+            onClick={toggleSidebar}
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400 dark:text-gray-500"
+            title="Hide sidebar"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
+        </div>
         <ul className="space-y-0.5">
           <li>
             <button

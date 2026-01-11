@@ -1,10 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Terminal, Upload, FolderOpen, PanelLeftClose, PanelLeft } from 'lucide-react';
-import { useSessionStore } from '@/stores/sessionStore';
+import { Terminal, Upload, FolderOpen } from 'lucide-react';
 
 export function Header() {
   const location = useLocation();
-  const { sidebarCollapsed, toggleSidebar } = useSessionStore();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -13,17 +11,6 @@ export function Header() {
       <div className="px-4">
         <div className="flex justify-between items-center h-14">
           <div className="flex items-center gap-2">
-            <button
-              onClick={toggleSidebar}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
-              title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-            >
-              {sidebarCollapsed ? (
-                <PanelLeft className="w-5 h-5" />
-              ) : (
-                <PanelLeftClose className="w-5 h-5" />
-              )}
-            </button>
             <Terminal className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             <Link to="/" className="font-semibold text-gray-900 dark:text-white">
               Claude Log Viewer

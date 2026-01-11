@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { User, Bot, Wrench, ChevronDown, ChevronRight, Clock } from 'lucide-react';
 import type { TimelineEvent as TimelineEventType } from '@/services/types';
 import { formatTime } from '@/utils/formatters';
+import { MarkdownContent } from '@/components/ui/MarkdownContent';
+import { CodeBlock } from '@/components/ui/CodeBlock';
 
 interface TimelineEventProps {
   event: TimelineEventType;
+  searchQuery?: string;
 }
 
-export function TimelineEvent({ event }: TimelineEventProps) {
+export function TimelineEvent({ event, searchQuery }: TimelineEventProps) {
   const [expanded, setExpanded] = useState(false);
 
   const getEventIcon = () => {
@@ -75,6 +78,9 @@ export function TimelineEvent({ event }: TimelineEventProps) {
     }
 
     if (event.type === 'tool_result') {
+      const displayContent = event.content && event.content.length > 2000
+        ? event.content.slice(0, 2000) + '\n... [truncated]'
+        : event.content || '';
       return (
         <div>
           <button
@@ -90,12 +96,8 @@ export function TimelineEvent({ event }: TimelineEventProps) {
           </button>
 
           {expanded && event.content ? (
-            <div className="mt-2 ml-6">
-              <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-x-auto max-h-64 overflow-y-auto">
-                {event.content.length > 2000
-                  ? event.content.slice(0, 2000) + '\n... [truncated]'
-                  : event.content}
-              </pre>
+            <div className="mt-2 ml-6 max-h-64 overflow-y-auto rounded">
+              <CodeBlock code={displayContent} className="text-xs" />
             </div>
           ) : null}
         </div>
@@ -132,9 +134,11 @@ export function TimelineEvent({ event }: TimelineEventProps) {
 
     return (
       <div className="prose prose-sm dark:prose-invert max-w-none">
-        <div className="whitespace-pre-wrap text-gray-900 dark:text-gray-100">
-          {event.content}
-        </div>
+        <MarkdownContent
+          content={event.content || ''}
+          className="text-gray-900 dark:text-gray-100"
+          searchQuery={searchQuery}
+        />
       </div>
     );
   };
@@ -156,6 +160,57 @@ export function TimelineEvent({ event }: TimelineEventProps) {
       {renderContent()}
     </div>
   );
+}
+
+// Infer language from file extension
+function getLanguageFromPath(filePath: string): string | undefined {
+  const ext = filePath.split('.').pop()?.toLowerCase();
+  const extMap: Record<string, string> = {
+    js: 'javascript',
+    jsx: 'jsx',
+    ts: 'typescript',
+    tsx: 'tsx',
+    py: 'python',
+    rb: 'ruby',
+    go: 'go',
+    rs: 'rust',
+    java: 'java',
+    kt: 'kotlin',
+    swift: 'swift',
+    c: 'c',
+    cpp: 'cpp',
+    h: 'c',
+    hpp: 'cpp',
+    cs: 'csharp',
+    php: 'php',
+    html: 'html',
+    htm: 'html',
+    css: 'css',
+    scss: 'scss',
+    sass: 'sass',
+    less: 'less',
+    json: 'json',
+    yaml: 'yaml',
+    yml: 'yaml',
+    xml: 'xml',
+    md: 'markdown',
+    sql: 'sql',
+    sh: 'bash',
+    bash: 'bash',
+    zsh: 'bash',
+    fish: 'bash',
+    ps1: 'powershell',
+    dockerfile: 'docker',
+    toml: 'toml',
+    ini: 'ini',
+    cfg: 'ini',
+    env: 'bash',
+    graphql: 'graphql',
+    gql: 'graphql',
+    vue: 'vue',
+    svelte: 'svelte',
+  };
+  return ext ? extMap[ext] : undefined;
 }
 
 function ToolInputDisplay({ toolName, input }: { toolName: string; input: Record<string, unknown> }) {
@@ -187,17 +242,20 @@ function ToolInputDisplay({ toolName, input }: { toolName: string; input: Record
 
   if (toolName === 'Write') {
     const content = String(input.content || '');
+    const filePath = String(input.file_path || '');
+    const language = getLanguageFromPath(filePath);
+    const displayContent = content.length > 1000 ? content.slice(0, 1000) + '\n... [truncated]' : content;
     return (
       <div>
         <div className="text-sm mb-2">
           <span className="text-gray-600 dark:text-gray-400">Writing: </span>
           <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
-            {String(input.file_path || '')}
+            {filePath}
           </code>
         </div>
-        <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-x-auto max-h-48 overflow-y-auto">
-          {content.length > 1000 ? content.slice(0, 1000) + '\n... [truncated]' : content}
-        </pre>
+        <div className="max-h-48 overflow-y-auto rounded">
+          <CodeBlock code={displayContent} language={language} className="text-xs" />
+        </div>
       </div>
     );
   }
@@ -205,19 +263,32 @@ function ToolInputDisplay({ toolName, input }: { toolName: string; input: Record
   if (toolName === 'Edit') {
     const oldStr = String(input.old_string || '');
     const newStr = String(input.new_string || '');
+    const filePath = String(input.file_path || '');
+    const language = getLanguageFromPath(filePath);
+    const oldDisplay = oldStr.length > 500 ? oldStr.slice(0, 500) + '\n... [truncated]' : oldStr;
+    const newDisplay = newStr.length > 500 ? newStr.slice(0, 500) + '\n... [truncated]' : newStr;
     return (
       <div>
         <div className="text-sm mb-2">
           <span className="text-gray-600 dark:text-gray-400">Editing: </span>
           <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
-            {String(input.file_path || '')}
+            {filePath}
           </code>
         </div>
-        <pre className="text-xs p-3 rounded overflow-x-auto bg-gray-100 dark:bg-gray-800">
-          <span className="text-red-600 dark:text-red-400">- {oldStr.slice(0, 200)}{oldStr.length > 200 ? '...' : ''}</span>
-          {'\n'}
-          <span className="text-green-600 dark:text-green-400">+ {newStr.slice(0, 200)}{newStr.length > 200 ? '...' : ''}</span>
-        </pre>
+        <div className="space-y-2">
+          <div className="border-l-4 border-red-500 pl-2">
+            <div className="text-xs text-red-600 dark:text-red-400 font-medium mb-1">Removed:</div>
+            <div className="max-h-32 overflow-y-auto rounded">
+              <CodeBlock code={oldDisplay} language={language} className="text-xs" />
+            </div>
+          </div>
+          <div className="border-l-4 border-green-500 pl-2">
+            <div className="text-xs text-green-600 dark:text-green-400 font-medium mb-1">Added:</div>
+            <div className="max-h-32 overflow-y-auto rounded">
+              <CodeBlock code={newDisplay} language={language} className="text-xs" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -242,8 +313,6 @@ function ToolInputDisplay({ toolName, input }: { toolName: string; input: Record
   }
 
   return (
-    <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-x-auto">
-      {JSON.stringify(input, null, 2)}
-    </pre>
+    <CodeBlock code={JSON.stringify(input, null, 2)} language="json" className="text-xs" />
   );
 }
