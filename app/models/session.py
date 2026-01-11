@@ -1,7 +1,7 @@
 """Session-related Pydantic models."""
 
 from datetime import datetime
-from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -12,11 +12,11 @@ class SessionSummary(BaseModel):
     project_path: str
     project_name: str
     file_path: str
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
-    duration_seconds: Optional[int] = None
-    git_branch: Optional[str] = None
-    cwd: Optional[str] = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    duration_seconds: int | None = None
+    git_branch: str | None = None
+    cwd: str | None = None
     message_count: int = 0
     tool_count: int = 0
     files_modified_count: int = 0
@@ -30,11 +30,11 @@ class SessionDetail(BaseModel):
     project_path: str
     project_name: str
     file_path: str
-    cwd: Optional[str] = None
-    git_branch: Optional[str] = None
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
-    duration_seconds: Optional[int] = None
+    cwd: str | None = None
+    git_branch: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    duration_seconds: int | None = None
     files_modified: list[str] = Field(default_factory=list)
     files_read: list[str] = Field(default_factory=list)
     tools_used: list[str] = Field(default_factory=list)
@@ -48,11 +48,11 @@ class TimelineEvent(BaseModel):
 
     id: str
     type: str  # "user", "assistant", "tool_use", "tool_result", "thinking"
-    timestamp: Optional[datetime] = None
-    content: Optional[str] = None
-    tool_name: Optional[str] = None
-    tool_input: Optional[dict] = None
-    tool_id: Optional[str] = None
+    timestamp: datetime | None = None
+    content: str | None = None
+    tool_name: str | None = None
+    tool_input: dict | None = None
+    tool_id: str | None = None
     files_affected: list[str] = Field(default_factory=list)
 
 
@@ -61,10 +61,10 @@ class FileChange(BaseModel):
 
     file_path: str
     operation: str  # "read", "write", "edit"
-    timestamp: Optional[datetime] = None
-    old_content: Optional[str] = None
-    new_content: Optional[str] = None
-    diff_preview: Optional[str] = None
+    timestamp: datetime | None = None
+    old_content: str | None = None
+    new_content: str | None = None
+    diff_preview: str | None = None
 
 
 class PaginatedResponse(BaseModel):

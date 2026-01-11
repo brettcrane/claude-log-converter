@@ -17,7 +17,6 @@
 - [ ] Export filtered session list
 
 ## Backlog / Ideas
-- [ ] Add Python linting (ruff)
 - [ ] Add Python tests (pytest)
 - [ ] Add frontend tests
 
@@ -37,3 +36,7 @@
 - [x] **Refresh button** - Clears cache to find new sessions immediately
 - [x] **Proper source/build separation** - Frontend source in `frontend/`, builds to `static/` (gitignored)
 - [x] **Archived legacy CLI** - Moved `claude-log-converter.py` to `archive/`
+- [x] **Claude Code workflow files** - Added CLAUDE.md, TODO.md, .claude/commands/commit.md
+- [x] **Python linting with ruff** - Added ruff.toml config, fixed all linting issues
+- [x] **Session format documentation** - Added .claude/skills/session-format.md with JSONL format details
+- [x] **Gotchas documentation** - Added .claude/skills/gotchas.md for common issues (venv paths, port conflicts, etc.)

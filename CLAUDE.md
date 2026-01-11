@@ -24,7 +24,8 @@ claude-log-converter/
 ├── static/               # Built frontend (gitignored, regenerated)
 ├── archive/              # Legacy/unmaintained code
 ├── .claude/              # Claude Code config
-│   └── commands/         # Custom slash commands
+│   ├── commands/         # Custom slash commands
+│   └── skills/           # Domain knowledge documentation
 ├── run.py                # Single entry point
 └── requirements.txt
 ```
@@ -66,11 +67,14 @@ npm run build        # Outputs to ../static/
 | `python run.py` | Start production server (serves built frontend) |
 | `cd frontend && npm run dev` | Frontend dev with hot reload |
 | `cd frontend && npm run build` | Build frontend to static/ |
+| `ruff check app/` | Lint Python code |
+| `ruff check app/ --fix` | Auto-fix linting issues |
 
 ## Pre-Commit Checklist
 Before any commit, verify:
 1. `cd frontend && npm run build` passes
-2. App runs without errors: `python run.py`
+2. `ruff check app/` passes (no linting errors)
+3. App runs without errors: `python run.py`
 
 ## API Endpoints
 | Endpoint | Method | Description |

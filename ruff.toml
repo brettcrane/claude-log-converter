@@ -1,0 +1,22 @@
+# Ruff configuration
+# https://docs.astral.sh/ruff/configuration/
+
+target-version = "py312"
+line-length = 100
+
+[lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "UP",     # pyupgrade
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # function call in default argument (required for FastAPI Query/Depends)
+]
+
+[lint.isort]
+known-first-party = ["app"]

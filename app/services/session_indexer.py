@@ -1,21 +1,21 @@
 """Session indexer service - discovers and caches session metadata."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
+
 from cachetools import TTLCache
 
 from app.config import settings
-from app.models.session import SessionSummary, SessionDetail
-from app.services.log_parser import get_session_summary, get_session_detail
+from app.models.session import SessionDetail, SessionSummary
+from app.services.log_parser import get_session_detail, get_session_summary
 
 
-def _get_sort_time(dt: Optional[datetime]) -> datetime:
+def _get_sort_time(dt: datetime | None) -> datetime:
     """Get a sortable datetime, handling None and timezone-naive/aware mixing."""
     if dt is None:
-        return datetime.min.replace(tzinfo=timezone.utc)
+        return datetime.min.replace(tzinfo=UTC)
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
+        return dt.replace(tzinfo=UTC)
     return dt
 
 
@@ -86,10 +86,10 @@ class SessionIndexer:
 
     def get_sessions(
         self,
-        project: Optional[str] = None,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None,
-        search: Optional[str] = None,
+        project: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        search: str | None = None,
         offset: int = 0,
         limit: int = 20,
     ) -> tuple[list[SessionSummary], int]:
@@ -142,7 +142,7 @@ class SessionIndexer:
 
         return paginated, total
 
-    def _scan_sessions(self, project: Optional[str] = None) -> list[SessionSummary]:
+    def _scan_sessions(self, project: str | None = None) -> list[SessionSummary]:
         """Scan projects directory for sessions."""
         sessions = []
         projects_dir = settings.claude_projects_dir
@@ -185,7 +185,7 @@ class SessionIndexer:
         self,
         session_id: str,
         include_thinking: bool = False
-    ) -> Optional[SessionDetail]:
+    ) -> SessionDetail | None:
         """Get full session details by session ID."""
         # Session ID is typically the JSONL filename (without extension)
         # We need to search for it across projects

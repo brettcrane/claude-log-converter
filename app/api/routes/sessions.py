@@ -1,24 +1,23 @@
 """Sessions API routes."""
 
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
 from app.config import settings
-from app.models.session import PaginatedResponse, SessionDetail, TimelineEvent, FileChange
-from app.services.session_indexer import session_indexer
+from app.models.session import PaginatedResponse
 from app.services.log_parser import extract_file_changes
+from app.services.session_indexer import session_indexer
 
 router = APIRouter()
 
 
 @router.get("")
 async def list_sessions(
-    project: Optional[str] = Query(None, description="Filter by project encoded name"),
-    date_from: Optional[datetime] = Query(None, description="Filter sessions from this date"),
-    date_to: Optional[datetime] = Query(None, description="Filter sessions to this date"),
-    search: Optional[str] = Query(None, description="Search in project name, cwd, branch"),
+    project: str | None = Query(None, description="Filter by project encoded name"),
+    date_from: datetime | None = Query(None, description="Filter sessions from this date"),
+    date_to: datetime | None = Query(None, description="Filter sessions to this date"),
+    search: str | None = Query(None, description="Search in project name, cwd, branch"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     limit: int = Query(
         settings.default_page_size,
@@ -67,7 +66,7 @@ async def get_session(
 async def get_session_timeline(
     session_id: str,
     include_thinking: bool = Query(False, description="Include thinking blocks"),
-    event_types: Optional[list[str]] = Query(None, description="Filter by event types"),
+    event_types: list[str] | None = Query(None, description="Filter by event types"),
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
 ):

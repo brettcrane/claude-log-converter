@@ -2,15 +2,13 @@
 
 import json
 import re
-import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
-from app.models.session import SessionDetail, SessionSummary, TimelineEvent, FileChange
+from app.models.session import FileChange, SessionDetail, SessionSummary, TimelineEvent
 
 
-def parse_timestamp(ts: str) -> Optional[datetime]:
+def parse_timestamp(ts: str) -> datetime | None:
     """Parse ISO timestamp from log entry."""
     if not ts:
         return None
@@ -86,7 +84,7 @@ def detect_decisions(text: str) -> list[str]:
 def parse_jsonl_file(filepath: Path) -> list[dict]:
     """Parse a JSONL file into a list of entries."""
     entries = []
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:

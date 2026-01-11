@@ -4,10 +4,10 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import projects, sessions, upload, export
+from app.api.routes import export, projects, sessions, upload
 
 app = FastAPI(
     title="Claude Log Converter",

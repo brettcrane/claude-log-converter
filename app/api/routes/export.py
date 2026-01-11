@@ -1,13 +1,11 @@
 """Export API routes."""
 
-import json
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import PlainTextResponse, JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
-from app.services.session_indexer import session_indexer
 from app.services.export_service import generate_markdown
+from app.services.session_indexer import session_indexer
 
 router = APIRouter()
 

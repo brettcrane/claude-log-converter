@@ -1,10 +1,9 @@
 """Upload API routes."""
 
 import uuid
-from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
 import aiofiles
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.config import settings
 from app.services.log_parser import get_session_detail
@@ -35,7 +34,7 @@ async def upload_jsonl(file: UploadFile = File(...)):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to save file: {str(e)}"
-        )
+        ) from e
 
     # Parse and return session details
     try:
@@ -57,4 +56,4 @@ async def upload_jsonl(file: UploadFile = File(...)):
         raise HTTPException(
             status_code=400,
             detail=f"Failed to parse JSONL file: {str(e)}"
-        )
+        ) from e
