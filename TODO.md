@@ -7,7 +7,7 @@
 - [x] ~~In-session search (Ctrl+F)~~ (completed - floating search bar with match highlighting, prev/next, Enter/Shift+Enter)
 - [x] ~~Collapsible event groups~~ (completed - groups consecutive tool calls, collapsed by default)
 - [x] ~~Sticky event headers~~ (completed as floating context badge - traditional sticky headers don't work with virtual scrolling)
-- [ ] Copy event to clipboard - button to copy individual event (formatted) for sharing (PR #2 open)
+- [x] ~~Copy event to clipboard~~ (completed - button copies individual event as markdown with toast feedback)
 
 ### Session List
 - [ ] Event type icons in session cards - small icons showing activity types (edits, bash, etc.)
@@ -74,6 +74,7 @@ When Claude creates a PR for a feature:
 ## Completed
 
 ### 2026-01-11
+- [x] **Copy event to clipboard** - Added copy button to each timeline event; copies formatted markdown with timestamps, tool info, and content; includes toast notifications for success/error feedback
 - [x] **Floating context badge** - Shows current speaker (User/Assistant/Tool) while scrolling, with enhanced rail highlight. Replaced sticky header approach which doesn't work with virtual scrolling (PR #1 merged, then fixed IntersectionObserver bug with scroll-based tracking)
 - [x] **Collapsible event groups** - Groups consecutive tool calls (e.g., "5 file reads") collapsed by default, with expand/collapse, tool-specific icons, and file path previews
 - [x] **In-session search (Ctrl+F)** - Floating search bar with match highlighting, prev/next navigation (Enter/Shift+Enter), auto-scroll to matches, yellow highlight for matching events

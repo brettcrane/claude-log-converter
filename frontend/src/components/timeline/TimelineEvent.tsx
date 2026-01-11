@@ -1,18 +1,37 @@
 import { useState } from 'react';
-import { User, Bot, Wrench, ChevronDown, ChevronRight, Clock } from 'lucide-react';
+import { User, Bot, Wrench, ChevronDown, ChevronRight, Clock, Copy } from 'lucide-react';
 import type { TimelineEvent as TimelineEventType } from '@/services/types';
 import { formatTime } from '@/utils/formatters';
 import { MarkdownContent } from '@/components/ui/MarkdownContent';
 import { CodeBlock } from '@/components/ui/CodeBlock';
+import { formatEventAsMarkdown, copyToClipboard } from '@/utils/eventFormatter';
 
 interface TimelineEventProps {
   event: TimelineEventType;
   searchQuery?: string;
   isActive?: boolean;
+  onCopySuccess?: () => void;
+  onCopyError?: () => void;
 }
 
-export function TimelineEvent({ event, searchQuery, isActive = false }: TimelineEventProps) {
+export function TimelineEvent({ event, searchQuery, isActive = false, onCopySuccess, onCopyError }: TimelineEventProps) {
   const [expanded, setExpanded] = useState(false);
+  const [copying, setCopying] = useState(false);
+
+  const handleCopy = async () => {
+    setCopying(true);
+    const markdown = formatEventAsMarkdown(event);
+    const success = await copyToClipboard(markdown);
+
+    if (success && onCopySuccess) {
+      onCopySuccess();
+    } else if (!success && onCopyError) {
+      onCopyError();
+    }
+
+    // Brief delay to show the copying state
+    setTimeout(() => setCopying(false), 500);
+  };
 
   const getEventIcon = () => {
     switch (event.type) {
@@ -146,7 +165,7 @@ export function TimelineEvent({ event, searchQuery, isActive = false }: Timeline
 
   return (
     <div
-      className={`border-l-4 ${getEventColor()} pl-4 py-3 transition-all duration-200 ${
+      className={`group border-l-4 ${getEventColor()} pl-4 py-3 transition-all duration-200 ${
         isActive ? 'border-l-8 bg-gradient-to-r from-gray-50/50 to-transparent dark:from-gray-800/30' : ''
       }`}
     >
@@ -161,6 +180,15 @@ export function TimelineEvent({ event, searchQuery, isActive = false }: Timeline
             {formatTime(event.timestamp)}
           </span>
         ) : null}
+        <button
+          onClick={handleCopy}
+          disabled={copying}
+          className="ml-auto p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100 focus:opacity-100"
+          title="Copy event to clipboard"
+          aria-label="Copy event to clipboard"
+        >
+          <Copy className={`w-4 h-4 ${copying ? 'text-green-500' : 'text-gray-400'}`} />
+        </button>
       </div>
       {renderContent()}
     </div>

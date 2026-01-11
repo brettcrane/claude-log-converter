@@ -5,6 +5,7 @@ import type { TimelineEvent as TimelineEventType } from '@/services/types';
 import { TimelineEvent } from './TimelineEvent';
 import { EventGroup } from './EventGroup';
 import { FloatingContextBadge } from './FloatingContextBadge';
+import { Toast } from '@/components/ui/Toast';
 
 // Represents either a single event or a group of events
 type TimelineItem =
@@ -96,6 +97,11 @@ export function Timeline({ events }: TimelineProps) {
   // Active event tracking for floating badge and rail highlight
   const [activeEventType, setActiveEventType] = useState<string | null>(null);
   const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
+
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
   const filteredEvents = events.filter((e) => selectedTypes.has(e.type));
 
@@ -284,6 +290,18 @@ export function Timeline({ events }: TimelineProps) {
     setSelectedTypes(new Set());
   };
 
+  const handleCopySuccess = useCallback(() => {
+    setToastMessage('Event copied to clipboard');
+    setToastType('success');
+    setShowToast(true);
+  }, []);
+
+  const handleCopyError = useCallback(() => {
+    setToastMessage('Failed to copy event');
+    setToastType('error');
+    setShowToast(true);
+  }, []);
+
   // Create a set of matching event indices for quick lookup
   const matchingEventIndices = useMemo(() => new Set(searchMatches), [searchMatches]);
   const currentMatchEventIndex = searchMatches[currentMatchIndex];
@@ -443,6 +461,8 @@ export function Timeline({ events }: TimelineProps) {
                       event={item.event}
                       searchQuery={searchQuery}
                       isActive={virtualItem.index === activeItemIndex}
+                      onCopySuccess={handleCopySuccess}
+                      onCopyError={handleCopyError}
                     />
                   </div>
                 ) : (
@@ -454,6 +474,8 @@ export function Timeline({ events }: TimelineProps) {
                     isMatch={isMatch}
                     isCurrentMatch={isCurrentMatch}
                     isActive={virtualItem.index === activeItemIndex}
+                    onCopySuccess={handleCopySuccess}
+                    onCopyError={handleCopyError}
                   />
                 )}
               </div>
@@ -463,6 +485,14 @@ export function Timeline({ events }: TimelineProps) {
       </div>
 
       <FloatingContextBadge eventType={activeEventType} />
+
+      {showToast && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setShowToast(false)}
+        />
+      )}
     </div>
   );
 }
