@@ -67,3 +67,46 @@ export interface SessionFilters {
   offset?: number;
   limit?: number;
 }
+
+export interface Bookmark {
+  id: number;
+  session_id: string;
+  event_id: string;
+  event_index: number;
+  project_name: string | null;
+  git_branch: string | null;
+  event_timestamp: string | null;
+  event_type: string | null;
+  category: string;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BookmarkCreate {
+  session_id: string;
+  event_id: string;
+  event_index: number;
+  project_name?: string | null;
+  git_branch?: string | null;
+  event_timestamp?: string | null;
+  event_type?: string | null;
+  category?: string;
+  note?: string | null;
+}
+
+export interface BookmarkUpdate {
+  category?: string;
+  note?: string | null;
+}
+
+export interface BookmarkFilters {
+  session_id?: string;
+  project?: string;
+  category?: string;
+  search?: string;
+  offset?: number;
+  limit?: number;
+  order_by?: 'created_at' | 'event_timestamp' | 'updated_at';
+  order?: 'asc' | 'desc';
+}

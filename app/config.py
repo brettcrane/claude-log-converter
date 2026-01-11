@@ -14,8 +14,11 @@ class Settings(BaseSettings):
     # Uploaded files directory
     upload_dir: Path = Path.home() / ".claude-log-converter" / "uploads"
 
-    # SQLite database path
+    # SQLite database path (sessions index)
     db_path: Path = Path.home() / ".claude-log-converter" / "sessions.db"
+
+    # Bookmarks database
+    bookmark_db_path: Path = Path.home() / ".claude-log-converter" / "bookmarks.db"
 
     # Feature flag: Use SQLite backend for indexing (default: True)
     use_sqlite_index: bool = True

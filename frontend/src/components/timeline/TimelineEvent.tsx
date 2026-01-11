@@ -1,21 +1,27 @@
 import { useState } from 'react';
 import { User, Bot, Wrench, ChevronDown, ChevronRight, Clock, Copy } from 'lucide-react';
-import type { TimelineEvent as TimelineEventType } from '@/services/types';
+import type { TimelineEvent as TimelineEventType, SessionDetail } from '@/services/types';
 import { formatTime } from '@/utils/formatters';
 import { MarkdownContent } from '@/components/ui/MarkdownContent';
 import { CodeBlock } from '@/components/ui/CodeBlock';
 import { formatEventAsMarkdown, copyToClipboard } from '@/utils/eventFormatter';
+import { BookmarkButton } from '@/components/bookmarks/BookmarkButton';
+import { BookmarkBadge } from '@/components/bookmarks/BookmarkBadge';
+import { useBookmarkStore } from '@/stores/bookmarkStore';
 
 interface TimelineEventProps {
   event: TimelineEventType;
+  session: SessionDetail;
   isActive?: boolean;
   onCopySuccess?: () => void;
   onCopyError?: () => void;
 }
 
-export function TimelineEvent({ event, isActive = false, onCopySuccess, onCopyError }: TimelineEventProps) {
+export function TimelineEvent({ event, session, isActive = false, onCopySuccess, onCopyError }: TimelineEventProps) {
   const [expanded, setExpanded] = useState(false);
   const [copying, setCopying] = useState(false);
+  const bookmarkStore = useBookmarkStore();
+  const bookmark = bookmarkStore.bookmarksByEventId.get(`${session.session_id}:${event.id}`);
 
   const handleCopy = async () => {
     setCopying(true);
@@ -178,15 +184,19 @@ export function TimelineEvent({ event, isActive = false, onCopySuccess, onCopyEr
             {formatTime(event.timestamp)}
           </span>
         ) : null}
-        <button
-          onClick={handleCopy}
-          disabled={copying}
-          className="ml-auto p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100 focus:opacity-100"
-          title="Copy event to clipboard"
-          aria-label="Copy event to clipboard"
-        >
-          <Copy className={`w-4 h-4 ${copying ? 'text-green-500' : 'text-gray-400'}`} />
-        </button>
+        {bookmark && <BookmarkBadge bookmark={bookmark} />}
+        <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <BookmarkButton event={event} session={session} />
+          <button
+            onClick={handleCopy}
+            disabled={copying}
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
+            title="Copy event to clipboard"
+            aria-label="Copy event to clipboard"
+          >
+            <Copy className={`w-4 h-4 ${copying ? 'text-green-500' : 'text-gray-400'}`} />
+          </button>
+        </div>
       </div>
       {renderContent()}
     </div>

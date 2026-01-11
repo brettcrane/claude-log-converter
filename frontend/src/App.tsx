@@ -4,6 +4,7 @@ import { Layout } from '@/components/layout/Layout';
 import { HomePage } from '@/pages/HomePage';
 import { SessionDetailPage } from '@/pages/SessionDetailPage';
 import { UploadPage } from '@/pages/UploadPage';
+import { BookmarksPage } from '@/pages/BookmarksPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,6 +24,7 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="session/:sessionId" element={<SessionDetailPage />} />
             <Route path="upload" element={<UploadPage />} />
+            <Route path="bookmarks" element={<BookmarksPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

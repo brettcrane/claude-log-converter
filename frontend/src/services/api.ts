@@ -5,6 +5,10 @@ import type {
   PaginatedResponse,
   SessionFilters,
   TimelineEvent,
+  Bookmark,
+  BookmarkCreate,
+  BookmarkUpdate,
+  BookmarkFilters,
 } from './types';
 
 const API_BASE = '/api';
@@ -103,4 +107,49 @@ export function getExportUrl(
 
 export async function clearSessionCache(): Promise<void> {
   await fetchJson(`${API_BASE}/sessions/cache/clear`, { method: 'POST' });
+}
+
+// Bookmark API functions
+export async function getBookmarks(
+  filters: BookmarkFilters = {}
+): Promise<PaginatedResponse<Bookmark>> {
+  const params = new URLSearchParams();
+  if (filters.session_id) params.set('session_id', filters.session_id);
+  if (filters.project) params.set('project', filters.project);
+  if (filters.category) params.set('category', filters.category);
+  if (filters.search) params.set('search', filters.search);
+  if (filters.offset !== undefined) params.set('offset', String(filters.offset));
+  if (filters.limit !== undefined) params.set('limit', String(filters.limit));
+  if (filters.order_by) params.set('order_by', filters.order_by);
+  if (filters.order) params.set('order', filters.order);
+
+  const query = params.toString();
+  return fetchJson(`${API_BASE}/bookmarks${query ? `?${query}` : ''}`);
+}
+
+export async function createBookmark(data: BookmarkCreate): Promise<Bookmark> {
+  return fetchJson(`${API_BASE}/bookmarks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateBookmark(
+  id: number,
+  data: BookmarkUpdate
+): Promise<Bookmark> {
+  return fetchJson(`${API_BASE}/bookmarks/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteBookmark(id: number): Promise<void> {
+  await fetch(`${API_BASE}/bookmarks/${id}`, { method: 'DELETE' });
+}
+
+export async function getSessionBookmarks(sessionId: string): Promise<Bookmark[]> {
+  return fetchJson(`${API_BASE}/bookmarks/session/${sessionId}`);
 }

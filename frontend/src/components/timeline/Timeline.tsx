@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Filter, ChevronDown } from 'lucide-react';
-import type { TimelineEvent as TimelineEventType } from '@/services/types';
+import type { TimelineEvent as TimelineEventType, SessionDetail } from '@/services/types';
 import { TimelineEvent } from './TimelineEvent';
 import { EventGroup } from './EventGroup';
 import { FloatingContextBadge } from './FloatingContextBadge';
@@ -71,6 +71,7 @@ function groupEvents(events: TimelineEventType[]): TimelineItem[] {
 
 interface TimelineProps {
   events: TimelineEventType[];
+  session: SessionDetail;
 }
 
 const EVENT_TYPES = [
@@ -81,7 +82,7 @@ const EVENT_TYPES = [
   { value: 'thinking', label: 'Thinking', color: 'bg-gray-300' },
 ];
 
-export function Timeline({ events }: TimelineProps) {
+export function Timeline({ events, session }: TimelineProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
@@ -286,6 +287,7 @@ export function Timeline({ events }: TimelineProps) {
                   <div className="px-4">
                     <TimelineEvent
                       event={item.event}
+                      session={session}
                       isActive={virtualItem.index === activeItemIndex}
                       onCopySuccess={handleCopySuccess}
                       onCopyError={handleCopyError}
@@ -294,6 +296,7 @@ export function Timeline({ events }: TimelineProps) {
                 ) : (
                   <EventGroup
                     events={item.events}
+                    session={session}
                     groupType={item.groupType}
                     toolName={item.toolName}
                     isActive={virtualItem.index === activeItemIndex}
