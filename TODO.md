@@ -6,8 +6,8 @@
 - [x] ~~Add syntax highlighting to code blocks in timeline~~ (completed - using prism-react-renderer)
 - [x] ~~In-session search (Ctrl+F)~~ (completed - floating search bar with match highlighting, prev/next, Enter/Shift+Enter)
 - [x] ~~Collapsible event groups~~ (completed - groups consecutive tool calls, collapsed by default)
-- [ ] Sticky event headers - keep "Assistant • 2:34 PM" pinned while scrolling through long responses
-- [ ] Copy event to clipboard - button to copy individual event (formatted) for sharing
+- [x] ~~Sticky event headers~~ (completed as floating context badge - traditional sticky headers don't work with virtual scrolling)
+- [ ] Copy event to clipboard - button to copy individual event (formatted) for sharing (PR #2 open)
 
 ### Session List
 - [ ] Event type icons in session cards - small icons showing activity types (edits, bash, etc.)
@@ -57,9 +57,24 @@
 
 ---
 
+## Development Workflow Notes
+
+### PR-Based Claude Development (learned 2026-01-11)
+
+When Claude creates a PR for a feature:
+1. **Review the PR** - Use `gh pr view <num>` and `gh pr diff <num>` to understand changes
+2. **Assess if it will work** - Look for architectural issues, edge cases, compatibility with existing patterns (e.g., virtual scrolling)
+3. **Merge first, fix later** - If the approach is sound but has minor bugs, merge to get cleaner code then fix on main
+4. **Use squash merge** - `gh pr merge <num> --squash --delete-branch` keeps history clean
+
+**Key lesson from PR #1 (floating badge):** IntersectionObserver doesn't work well with virtual scrolling because elements are created/destroyed during scroll. Scroll-position-based tracking using the virtualizer's state is more reliable.
+
+---
+
 ## Completed
 
 ### 2026-01-11
+- [x] **Floating context badge** - Shows current speaker (User/Assistant/Tool) while scrolling, with enhanced rail highlight. Replaced sticky header approach which doesn't work with virtual scrolling (PR #1 merged, then fixed IntersectionObserver bug with scroll-based tracking)
 - [x] **Collapsible event groups** - Groups consecutive tool calls (e.g., "5 file reads") collapsed by default, with expand/collapse, tool-specific icons, and file path previews
 - [x] **In-session search (Ctrl+F)** - Floating search bar with match highlighting, prev/next navigation (Enter/Shift+Enter), auto-scroll to matches, yellow highlight for matching events
 - [x] **Project filtering fix** - Sidebar project clicks now filter sessions correctly, shows loading spinner, displays project badge with clear button
