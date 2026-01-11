@@ -260,8 +260,16 @@ class SessionDatabase:
                 params = []
 
                 if project:
+                    # Handle both encoded names (e.g., '-home-user-code-app') and
+                    # plain project names (e.g., 'app')
+                    if project.startswith("-"):
+                        # Encoded name - extract project name from decoded path
+                        decoded_path = self._decode_project_path(project)
+                        project_name = Path(decoded_path).name
+                    else:
+                        project_name = project
                     where_clauses.append("project_name = ?")
-                    params.append(project)
+                    params.append(project_name)
 
                 if date_from:
                     where_clauses.append("start_time >= ?")
