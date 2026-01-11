@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { Tab } from '@headlessui/react';
 import {
   ArrowLeft,
   Clock,
@@ -19,12 +20,9 @@ import { Timeline } from '@/components/timeline/Timeline';
 import { getExportUrl } from '@/services/api';
 import type { SessionDetail } from '@/services/types';
 
-type TabType = 'timeline' | 'files' | 'summary';
-
 export function SessionDetailPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const { currentSession, loading, error, fetchSession, clearSession } = useSessionStore();
-  const [activeTab, setActiveTab] = useState<TabType>('timeline');
   const [includeThinking, setIncludeThinking] = useState(false);
 
   useEffect(() => {
@@ -64,114 +62,124 @@ export function SessionDetailPage() {
     return null;
   }
 
-  const tabs: { id: TabType; label: string; icon: typeof FileText }[] = [
-    { id: 'timeline', label: 'Timeline', icon: FileText },
-    { id: 'files', label: 'Files', icon: FolderOpen },
-    { id: 'summary', label: 'Summary', icon: ListTodo },
+  const tabs = [
+    { label: 'Timeline', icon: FileText, component: Timeline },
+    { label: 'Files', icon: FolderOpen, component: FilesTab },
+    { label: 'Summary', icon: ListTodo, component: SummaryTab },
   ];
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <Link
-              to="/"
-              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
-              title="Back"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div>
-              <h1 className="font-semibold text-gray-900 dark:text-white">
-                {currentSession.project_name}
-              </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-md">
-                {currentSession.cwd}
-              </p>
+    <Tab.Group>
+      <div className="h-full flex flex-col">
+        <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <Link
+                to="/"
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                title="Back"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+              <div>
+                <h1 className="font-semibold text-gray-900 dark:text-white">
+                  {currentSession.project_name}
+                </h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-md">
+                  {currentSession.cwd}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={includeThinking}
+                  onChange={(e) => setIncludeThinking(e.target.checked)}
+                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                Thinking
+              </label>
+              <a
+                href={getExportUrl(currentSession.session_id, 'markdown', { includeThinking })}
+                download
+                className="flex items-center gap-1.5 px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
+              >
+                <Download className="w-3 h-3" />
+                MD
+              </a>
+              <a
+                href={getExportUrl(currentSession.session_id, 'json', { includeThinking })}
+                download
+                className="flex items-center gap-1.5 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                <Download className="w-3 h-3" />
+                JSON
+              </a>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
-              <input
-                type="checkbox"
-                checked={includeThinking}
-                onChange={(e) => setIncludeThinking(e.target.checked)}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              Thinking
-            </label>
-            <a
-              href={getExportUrl(currentSession.session_id, 'markdown', { includeThinking })}
-              download
-              className="flex items-center gap-1.5 px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
-            >
-              <Download className="w-3 h-3" />
-              MD
-            </a>
-            <a
-              href={getExportUrl(currentSession.session_id, 'json', { includeThinking })}
-              download
-              className="flex items-center gap-1.5 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              <Download className="w-3 h-3" />
-              JSON
-            </a>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-3 text-xs text-gray-600 dark:text-gray-400 mb-3">
-          <div className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {formatDateTime(currentSession.start_time)}
-          </div>
-          {currentSession.duration_seconds ? (
+          <div className="flex flex-wrap gap-3 text-xs text-gray-600 dark:text-gray-400 mb-3">
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {formatDuration(currentSession.duration_seconds)}
+              {formatDateTime(currentSession.start_time)}
             </div>
-          ) : null}
-          {currentSession.git_branch ? (
+            {currentSession.duration_seconds ? (
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatDuration(currentSession.duration_seconds)}
+              </div>
+            ) : null}
+            {currentSession.git_branch ? (
+              <div className="flex items-center gap-1">
+                <GitBranch className="w-3 h-3" />
+                {currentSession.git_branch}
+              </div>
+            ) : null}
             <div className="flex items-center gap-1">
-              <GitBranch className="w-3 h-3" />
-              {currentSession.git_branch}
+              <FileText className="w-3 h-3" />
+              {currentSession.events.filter((e) => ['user', 'assistant'].includes(e.type)).length} messages
             </div>
-          ) : null}
-          <div className="flex items-center gap-1">
-            <FileText className="w-3 h-3" />
-            {currentSession.events.filter((e) => ['user', 'assistant'].includes(e.type)).length} messages
+            <div className="flex items-center gap-1">
+              <Wrench className="w-3 h-3" />
+              {currentSession.events.filter((e) => e.type === 'tool_use').length} tools
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Wrench className="w-3 h-3" />
-            {currentSession.events.filter((e) => e.type === 'tool_use').length} tools
-          </div>
+
+          <Tab.List className="flex gap-1 border-b border-gray-200 dark:border-gray-700 -mb-px">
+            {tabs.map((tab) => (
+              <Tab key={tab.label} as={Fragment}>
+                {({ selected }) => (
+                  <button
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors focus:outline-none ${
+                      selected
+                        ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                        : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                    }`}
+                  >
+                    <tab.icon className="w-3 h-3" />
+                    {tab.label}
+                  </button>
+                )}
+              </Tab>
+            ))}
+          </Tab.List>
         </div>
 
-        <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 -mb-px">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors ${
-                activeTab === tab.id
-                  ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-              }`}
-            >
-              <tab.icon className="w-3 h-3" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <Tab.Panels className="flex-1 min-h-0 overflow-hidden">
+          <Tab.Panel className="h-full">
+            <Timeline events={currentSession.events} session={currentSession} />
+          </Tab.Panel>
+          <Tab.Panel className="h-full">
+            <FilesTab session={currentSession} />
+          </Tab.Panel>
+          <Tab.Panel className="h-full">
+            <SummaryTab session={currentSession} />
+          </Tab.Panel>
+        </Tab.Panels>
       </div>
-
-      <div className="flex-1 min-h-0 overflow-hidden">
-        {activeTab === 'timeline' ? <Timeline events={currentSession.events} session={currentSession} /> : null}
-        {activeTab === 'files' ? <FilesTab session={currentSession} /> : null}
-        {activeTab === 'summary' ? <SummaryTab session={currentSession} /> : null}
-      </div>
-    </div>
+    </Tab.Group>
   );
 }
 
