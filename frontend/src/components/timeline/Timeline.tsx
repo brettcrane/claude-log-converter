@@ -203,61 +203,53 @@ export function Timeline({ events }: TimelineProps) {
     }
   }, [searchMatches, scrollToMatch]);
 
-  // Track active event using IntersectionObserver
+  // Track active event using scroll position
+  // This approach works reliably with virtual scrolling (unlike IntersectionObserver)
   useEffect(() => {
     const scrollContainer = parentRef.current;
     if (!scrollContainer) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Find the entry that's most visible at the top
-        const topMostEntry = entries
-          .filter(entry => entry.isIntersecting)
-          .reduce<IntersectionObserverEntry | null>((best, entry) => {
-            if (!best || entry.intersectionRatio > best.intersectionRatio) {
-              return entry;
-            }
-            return best;
-          }, null);
+    const updateActiveItem = () => {
+      const scrollTop = scrollContainer.scrollTop;
+      // Find the item at ~20% from the top of viewport for better UX
+      const targetPosition = scrollTop + scrollContainer.clientHeight * 0.2;
 
-        if (topMostEntry) {
-          const target = topMostEntry.target as Element;
-          const index = parseInt(target.getAttribute('data-index') || '0');
-          const item = groupedItems[index];
+      // Find the item that contains this position
+      const virtualItems = virtualizer.getVirtualItems();
+      for (const virtualItem of virtualItems) {
+        if (virtualItem.start <= targetPosition && virtualItem.end > targetPosition) {
+          const item = groupedItems[virtualItem.index];
           if (item) {
-            setActiveItemIndex(index);
+            setActiveItemIndex(virtualItem.index);
             if (item.type === 'single') {
               setActiveEventType(item.event.type);
             } else {
-              // For groups, use the group type
               setActiveEventType(item.groupType);
             }
           }
+          return;
         }
-      },
-      {
-        root: scrollContainer,
-        rootMargin: '-20% 0px -70% 0px', // Track items in top 30% of viewport
-        threshold: [0, 0.1, 0.5, 1],
       }
-    );
 
-    // Observe all visible items
-    const observeElements = () => {
-      const elements = scrollContainer.querySelectorAll('[data-index]');
-      elements.forEach((el) => observer.observe(el));
+      // Fallback to first visible item
+      if (virtualItems.length > 0) {
+        const firstItem = groupedItems[virtualItems[0].index];
+        if (firstItem) {
+          setActiveItemIndex(virtualItems[0].index);
+          if (firstItem.type === 'single') {
+            setActiveEventType(firstItem.event.type);
+          } else {
+            setActiveEventType(firstItem.groupType);
+          }
+        }
+      }
     };
 
-    // Initial observation
-    observeElements();
+    // Initial update
+    updateActiveItem();
 
-    // Re-observe when virtual items change (debounced)
-    const timeoutId = setTimeout(observeElements, 100);
-
-    return () => {
-      clearTimeout(timeoutId);
-      observer.disconnect();
-    };
+    scrollContainer.addEventListener('scroll', updateActiveItem, { passive: true });
+    return () => scrollContainer.removeEventListener('scroll', updateActiveItem);
   }, [groupedItems, virtualizer]);
 
   const toggleType = (type: string) => {
