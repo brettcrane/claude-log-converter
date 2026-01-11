@@ -18,7 +18,7 @@ interface SessionState {
   fetchSessions: () => Promise<void>;
   fetchMoreSessions: () => Promise<void>;
   refreshSessions: () => Promise<void>;
-  fetchSession: (sessionId: string, includeThinking?: boolean) => Promise<void>;
+  fetchSession: (sessionId: string, includeThinking?: boolean) => Promise<SessionDetail | null>;
   fetchProjects: () => Promise<void>;
   clearSession: () => void;
   toggleSidebar: () => void;
@@ -119,11 +119,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     try {
       const session = await getSession(sessionId, includeThinking);
       set({ currentSession: session, loading: false });
+      return session;
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : 'Failed to fetch session',
         loading: false,
       });
+      return null;
     }
   },
 

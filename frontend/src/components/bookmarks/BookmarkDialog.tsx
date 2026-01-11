@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import type { TimelineEvent, SessionDetail } from '@/services/types';
+import type { TimelineEvent, SessionDetail, Bookmark } from '@/services/types';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 
 interface BookmarkDialogProps {
   event: TimelineEvent;
   session: SessionDetail;
   onClose: () => void;
+  /** Pass existing bookmark directly to avoid store lookup issues with unstable event IDs */
+  bookmark?: Bookmark;
 }
 
 const CATEGORIES = [
@@ -18,9 +20,11 @@ const CATEGORIES = [
   { value: 'question', label: 'Question', color: 'bg-blue-500' },
 ];
 
-export function BookmarkDialog({ event, session, onClose }: BookmarkDialogProps) {
+export function BookmarkDialog({ event, session, onClose, bookmark }: BookmarkDialogProps) {
   const bookmarkStore = useBookmarkStore();
-  const existingBookmark = bookmarkStore.bookmarksByEventId.get(
+  // Use passed bookmark if provided, otherwise look up from store
+  // (store lookup can fail when event IDs differ due to includeThinking setting)
+  const existingBookmark = bookmark ?? bookmarkStore.bookmarksByEventId.get(
     `${session.session_id}:${event.id}`
   );
 

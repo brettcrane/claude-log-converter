@@ -44,9 +44,11 @@ export function BookmarkList({ bookmarks, onEdit, onDelete }: BookmarkListProps)
       >
         {virtualizer.getVirtualItems().map((virtualItem) => {
           const bookmark = bookmarks[virtualItem.index];
+          // Use bookmark id + updated_at as key to force re-render when data changes
+          const itemKey = `${bookmark.id}-${bookmark.updated_at}`;
           return (
             <div
-              key={virtualItem.key}
+              key={itemKey}
               style={{
                 position: 'absolute',
                 top: 0,

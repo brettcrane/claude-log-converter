@@ -49,33 +49,26 @@ export function BookmarksPage() {
   }, [selectedCategory, searchQuery, selectedSort]);
 
   const handleEdit = async (bookmark: Bookmark) => {
-    // Load the session to get event data
-    const session = sessionStore.currentSession?.session_id === bookmark.session_id
+    // Use cached session if already loaded, otherwise fetch it
+    let session = sessionStore.currentSession?.session_id === bookmark.session_id
       ? sessionStore.currentSession
       : null;
 
     if (!session) {
-      // Need to load session
-      await sessionStore.fetchSession(bookmark.session_id);
-      const loadedSession = sessionStore.currentSession;
-      if (!loadedSession) {
+      // Fetch session and use the returned value directly (avoids React state timing issues)
+      session = await sessionStore.fetchSession(bookmark.session_id);
+      if (!session) {
         alert('Failed to load session');
         return;
       }
-      const event = loadedSession.events.find(e => e.id === bookmark.event_id);
-      if (!event) {
-        alert('Event not found in session');
-        return;
-      }
-      setEditingBookmark({ bookmark, event, session: loadedSession });
-    } else {
-      const event = session.events.find(e => e.id === bookmark.event_id);
-      if (!event) {
-        alert('Event not found in session');
-        return;
-      }
-      setEditingBookmark({ bookmark, event, session });
     }
+
+    const event = session.events.find(e => e.id === bookmark.event_id);
+    if (!event) {
+      alert('Event not found in session');
+      return;
+    }
+    setEditingBookmark({ bookmark, event, session });
   };
 
   const handleDelete = async (bookmark: Bookmark) => {
@@ -196,6 +189,7 @@ export function BookmarksPage() {
         <BookmarkDialog
           event={editingBookmark.event}
           session={editingBookmark.session}
+          bookmark={editingBookmark.bookmark}
           onClose={() => {
             setEditingBookmark(null);
             // Refresh bookmarks
