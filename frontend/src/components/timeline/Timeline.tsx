@@ -1,10 +1,12 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo, Fragment } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { Menu, Transition } from '@headlessui/react';
 import { Filter, ChevronDown } from 'lucide-react';
 import type { TimelineEvent as TimelineEventType, SessionDetail } from '@/services/types';
 import { TimelineEvent } from './TimelineEvent';
 import { EventGroup } from './EventGroup';
 import { FloatingContextBadge } from './FloatingContextBadge';
+import { FloatingNav } from '@/components/ui/FloatingNav';
 import { Toast } from '@/components/ui/Toast';
 
 // Represents either a single event or a group of events
@@ -84,7 +86,6 @@ const EVENT_TYPES = [
 
 export function Timeline({ events, session }: TimelineProps) {
   const parentRef = useRef<HTMLDivElement>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
     new Set(['user', 'assistant', 'tool_use'])
   );
@@ -210,18 +211,23 @@ export function Timeline({ events, session }: TimelineProps) {
             {filteredEvents.length} of {events.length} events
           </span>
 
-          <div className="relative">
-            <button
-              onClick={() => setFilterOpen(!filterOpen)}
-              className="flex items-center gap-2 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
+          <Menu as="div" className="relative">
+            <Menu.Button className="flex items-center gap-2 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
               <Filter className="w-4 h-4" />
               Filter
               <ChevronDown className="w-4 h-4" />
-            </button>
+            </Menu.Button>
 
-            {filterOpen ? (
-              <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <Menu.Items className="absolute right-0 mt-2 w-44 origin-top-right bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg focus:outline-none">
                 <div className="p-2 border-b border-gray-200 dark:border-gray-700 flex gap-2">
                   <button
                     onClick={selectAll}
@@ -238,24 +244,25 @@ export function Timeline({ events, session }: TimelineProps) {
                 </div>
                 <div className="p-2 space-y-1">
                   {EVENT_TYPES.map((type) => (
-                    <label
-                      key={type.value}
-                      className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedTypes.has(type.value)}
-                        onChange={() => toggleType(type.value)}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span className={`w-2 h-2 rounded-full ${type.color}`} />
-                      <span className="text-sm">{type.label}</span>
-                    </label>
+                    <Menu.Item key={type.value}>
+                      {() => (
+                        <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedTypes.has(type.value)}
+                            onChange={() => toggleType(type.value)}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className={`w-2 h-2 rounded-full ${type.color}`} />
+                          <span className="text-sm text-gray-900 dark:text-white">{type.label}</span>
+                        </label>
+                      )}
+                    </Menu.Item>
                   ))}
                 </div>
-              </div>
-            ) : null}
-          </div>
+              </Menu.Items>
+            </Transition>
+          </Menu>
         </div>
       </div>
 
@@ -311,6 +318,7 @@ export function Timeline({ events, session }: TimelineProps) {
       </div>
 
       <FloatingContextBadge eventType={activeEventType} />
+      <FloatingNav scrollContainerRef={parentRef} />
 
       {showToast && (
         <Toast
