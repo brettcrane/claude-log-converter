@@ -5,6 +5,7 @@ import type { TimelineEvent as TimelineEventType, SessionDetail } from '@/servic
 import { TimelineEvent } from './TimelineEvent';
 import { EventGroup } from './EventGroup';
 import { FloatingContextBadge } from './FloatingContextBadge';
+import { FloatingNav } from '@/components/ui/FloatingNav';
 import { Toast } from '@/components/ui/Toast';
 
 // Represents either a single event or a group of events
@@ -311,6 +312,7 @@ export function Timeline({ events, session }: TimelineProps) {
       </div>
 
       <FloatingContextBadge eventType={activeEventType} />
+      <FloatingNav scrollContainerRef={parentRef} />
 
       {showToast && (
         <Toast
