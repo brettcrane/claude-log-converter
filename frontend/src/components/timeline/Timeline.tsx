@@ -192,7 +192,7 @@ export function Timeline({ events }: TimelineProps) {
   };
 
   // Scroll to current match whenever it changes
-  // Using useEffect ensures we scroll after render when virtualizer is ready
+  // Uses a two-phase approach: virtualizer brings item into view, then native scrollIntoView centers it
   useEffect(() => {
     if (searchMatches.length === 0) return;
     const eventIndex = searchMatches[currentMatchIndex];
@@ -201,21 +201,29 @@ export function Timeline({ events }: TimelineProps) {
     const scrollContainer = parentRef.current;
     if (!scrollContainer) return;
 
-    // First scroll to bring item into view, then adjust to center it
-    // Using two frames ensures measurements are accurate after initial scroll
+    // Phase 1: Use virtualizer to ensure the item is rendered (brought into virtual window)
     virtualizer.scrollToIndex(eventIndex, { align: 'start' });
 
-    // After initial scroll, get accurate position and center properly
+    // Phase 2: After DOM updates, find the actual element and use native scrollIntoView
+    // This is more reliable than virtualizer's scroll calculations with dynamic sizes
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    const scrollToElement = () => {
+      const element = scrollContainer.querySelector(`[data-index="${eventIndex}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (attempts < maxAttempts) {
+        // Element not rendered yet, retry after another frame
+        attempts++;
+        requestAnimationFrame(scrollToElement);
+      }
+    };
+
+    // Wait for virtualizer to render the item, then scroll
+    // Double RAF ensures DOM has updated after virtualizer's scroll
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const items = virtualizer.getVirtualItems();
-        const targetItem = items.find(item => item.index === eventIndex);
-        if (targetItem) {
-          const containerHeight = scrollContainer.clientHeight;
-          const scrollTop = targetItem.start - (containerHeight / 2) + (targetItem.size / 2);
-          scrollContainer.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' });
-        }
-      });
+      requestAnimationFrame(scrollToElement);
     });
   }, [currentMatchIndex, searchMatches, virtualizer]);
 
