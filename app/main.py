@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import export, projects, sessions, upload
+from app.api.routes import bookmarks, export, projects, sessions, upload
+from app.services.database import init_database
 
 app = FastAPI(
     title="Claude Log Converter",
@@ -24,11 +25,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup."""
+    init_database()
+
+
 # Register API routes
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(upload.router, prefix="/api/upload", tags=["upload"])
 app.include_router(export.router, prefix="/api/export", tags=["export"])
+app.include_router(bookmarks.router, prefix="/api/bookmarks", tags=["bookmarks"])
 
 
 @app.get("/api/health")

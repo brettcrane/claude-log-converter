@@ -59,6 +59,19 @@ curl -X POST http://localhost:8000/api/sessions/cache/clear
 
 ## Ruff Linting
 
+**Ruff is installed in the venv** - you must activate it first:
+
+```bash
+# WRONG - ruff not found
+ruff check app/
+
+# RIGHT - activate venv first
+source .venv/bin/activate && ruff check app/
+
+# Or from any directory
+cd /home/brett-crane/code/claude-log-converter && source .venv/bin/activate && ruff check app/
+```
+
 B008 warnings about `Query()` in function defaults are expected with FastAPI - they're ignored in `ruff.toml`.
 
-Always run `ruff check app/` before committing. Use `--fix` to auto-fix most issues.
+Use `--fix` to auto-fix most issues.

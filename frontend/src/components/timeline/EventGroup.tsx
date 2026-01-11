@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Wrench, FileText, FolderSearch, Terminal } from 'lucide-react';
-import type { TimelineEvent as TimelineEventType } from '@/services/types';
+import type { TimelineEvent as TimelineEventType, SessionDetail } from '@/services/types';
 import { TimelineEvent } from './TimelineEvent';
 
 interface EventGroupProps {
   events: TimelineEventType[];
+  session: SessionDetail;
   groupType: 'tool_use' | 'tool_result';
   toolName?: string;
   isActive?: boolean;
@@ -76,7 +77,7 @@ function getFilePaths(events: TimelineEventType[]): string[] {
   return paths;
 }
 
-export function EventGroup({ events, groupType, toolName, isActive = false, onCopySuccess, onCopyError }: EventGroupProps) {
+export function EventGroup({ events, session, groupType, toolName, isActive = false, onCopySuccess, onCopyError }: EventGroupProps) {
   const [expanded, setExpanded] = useState(false);
 
   const Icon = toolName ? getToolIcon(toolName) : Wrench;
@@ -119,6 +120,7 @@ export function EventGroup({ events, groupType, toolName, isActive = false, onCo
               <div key={index} className="border-l-2 border-gray-200 dark:border-gray-700 pl-3">
                 <TimelineEvent
                   event={event}
+                  session={session}
                   onCopySuccess={onCopySuccess}
                   onCopyError={onCopyError}
                 />

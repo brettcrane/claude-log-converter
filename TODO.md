@@ -4,10 +4,11 @@
 
 ### UX & Timeline Improvements
 - [x] ~~Add syntax highlighting to code blocks in timeline~~ (completed - using prism-react-renderer)
-- [x] ~~In-session search (Ctrl+F)~~ (completed - floating search bar with match highlighting, prev/next, Enter/Shift+Enter)
+- [x] ~~In-session search (Ctrl+F)~~ (completed then removed - had issues with virtual scroll, browser Ctrl+F works better)
 - [x] ~~Collapsible event groups~~ (completed - groups consecutive tool calls, collapsed by default)
 - [x] ~~Sticky event headers~~ (completed as floating context badge - traditional sticky headers don't work with virtual scrolling)
 - [x] ~~Copy event to clipboard~~ (completed - button copies individual event as markdown with toast feedback)
+- [x] ~~Session bookmarks/annotations~~ (completed - bookmark events with categories, notes, dedicated page)
 
 ### Architecture
 - [x] ~~SQLite backend - replace file-based caching for faster FTS5 search, persistent metadata, tags storage~~ (completed - hybrid approach with JSONL as source of truth)
@@ -18,7 +19,6 @@
 - [ ] Event type icons in session cards - small icons showing activity types (edits, bash, etc.)
 - [ ] Improved diff viewer (side-by-side view with synchronized scrolling)
 - [ ] Keyboard shortcuts (j/k navigation, Enter expand/collapse, / to search, Esc close, [/] switch tabs)
-- [ ] Session bookmarks/annotations - mark important moments with persistent anchors
 
 ### Search & Discovery
 - [ ] Advanced search filters - filter chips: `tool:Edit`, `file:*.tsx`, `has:error`, `duration:>30m`
@@ -72,6 +72,7 @@ When Claude creates a PR for a feature:
 ## Completed
 
 ### 2026-01-11
+- [x] **Session bookmarks/annotations** - Bookmark important moments in sessions with categories (Important, Reference, Bug, Question, General), notes, and quick jump-to-event navigation. SQLite backend with full CRUD API, dedicated bookmarks page with filtering and sorting (by bookmark date or event time), bookmark badges in timeline, integrated with virtual scrolling for performance
 - [x] **SQLite backend with FTS5 full-text search** - Implemented hybrid approach where JSONL remains source of truth and SQLite provides 100-500x faster search. Key features:
   - Production-ready `app/services/session_db.py` with full schema (sessions, events, FTS5 index, metadata, tags)
   - Automatic stale detection via file mtime tracking
@@ -83,7 +84,7 @@ When Claude creates a PR for a feature:
 - [x] **Copy event to clipboard** - Added copy button to each timeline event; copies formatted markdown with timestamps, tool info, and content; includes toast notifications for success/error feedback
 - [x] **Floating context badge** - Shows current speaker (User/Assistant/Tool) while scrolling, with enhanced rail highlight. Replaced sticky header approach which doesn't work with virtual scrolling (PR #1 merged, then fixed IntersectionObserver bug with scroll-based tracking)
 - [x] **Collapsible event groups** - Groups consecutive tool calls (e.g., "5 file reads") collapsed by default, with expand/collapse, tool-specific icons, and file path previews
-- [x] **In-session search (Ctrl+F)** - Floating search bar with match highlighting, prev/next navigation (Enter/Shift+Enter), auto-scroll to matches, yellow highlight for matching events
+- [x] **In-session search (Ctrl+F)** - Implemented but later removed due to issues with virtual scroll auto-navigation. Browser Ctrl+F works well as alternative.
 - [x] **Project filtering fix** - Sidebar project clicks now filter sessions correctly, shows loading spinner, displays project badge with clear button
 - [x] **Syntax highlighting for code blocks** - Added prism-react-renderer with oneDark theme; highlights code in messages, Write/Edit tools, and tool results; auto-detects language from file extensions
 - [x] **Sidebar toggle moved to sidebar** - Collapse button now in sidebar header next to "Projects", shows narrow bar when collapsed

@@ -1,11 +1,14 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FolderOpen, ChevronRight, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { FolderOpen, ChevronRight, PanelLeftClose, PanelLeft, Bookmark } from 'lucide-react';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useBookmarkStore } from '@/stores/bookmarkStore';
 
 export function Sidebar() {
   const { projects, filters, setFilters, fetchProjects, sidebarCollapsed, toggleSidebar } = useSessionStore();
+  const { total: bookmarkCount } = useBookmarkStore();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     fetchProjects();
@@ -37,7 +40,7 @@ export function Sidebar() {
       <div className="p-3">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Projects
+            Navigation
           </h2>
           <button
             onClick={toggleSidebar}
@@ -47,6 +50,31 @@ export function Sidebar() {
             <PanelLeftClose className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Bookmarks Link */}
+        <div className="mb-4">
+          <button
+            onClick={() => navigate('/bookmarks')}
+            className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors ${
+              location.pathname === '/bookmarks'
+                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200'
+                : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+            }`}
+          >
+            <Bookmark className="w-4 h-4" />
+            <span className="flex-1 text-left">Bookmarks</span>
+            {bookmarkCount > 0 && (
+              <span className="text-xs bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 rounded">
+                {bookmarkCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Projects Section */}
+        <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+          Projects
+        </h2>
         <ul className="space-y-0.5">
           <li>
             <button
