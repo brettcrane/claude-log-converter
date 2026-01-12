@@ -1,27 +1,27 @@
 import { useEffect, useState, Fragment } from 'react';
-import { Menu, Listbox, Transition } from '@headlessui/react';
-import { Loader2, Search, X, ChevronDown, Check } from 'lucide-react';
+import { Listbox, Transition } from '@headlessui/react';
+import { Loader2, Search, X, ChevronDown, Check, SlidersHorizontal, Bookmark } from 'lucide-react';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { BookmarkList } from '@/components/bookmarks/BookmarkList';
 import { BookmarkDialog } from '@/components/bookmarks/BookmarkDialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import type { Bookmark, SessionDetail, TimelineEvent } from '@/services/types';
+import type { Bookmark as BookmarkType, SessionDetail, TimelineEvent } from '@/services/types';
 import { useSessionStore } from '@/stores/sessionStore';
 
 const SORT_OPTIONS = [
-  { value: 'created_at-desc', label: 'Bookmarked (newest)', order_by: 'created_at', order: 'desc' },
-  { value: 'created_at-asc', label: 'Bookmarked (oldest)', order_by: 'created_at', order: 'asc' },
-  { value: 'event_timestamp-desc', label: 'Event time (newest)', order_by: 'event_timestamp', order: 'desc' },
-  { value: 'event_timestamp-asc', label: 'Event time (oldest)', order_by: 'event_timestamp', order: 'asc' },
+  { value: 'created_at-desc', label: 'Newest first', order_by: 'created_at', order: 'desc' },
+  { value: 'created_at-asc', label: 'Oldest first', order_by: 'created_at', order: 'asc' },
+  { value: 'event_timestamp-desc', label: 'Event (newest)', order_by: 'event_timestamp', order: 'desc' },
+  { value: 'event_timestamp-asc', label: 'Event (oldest)', order_by: 'event_timestamp', order: 'asc' },
 ] as const;
 
 const CATEGORIES = [
-  { value: 'all', label: 'All Categories' },
-  { value: 'general', label: 'General' },
-  { value: 'important', label: 'Important' },
-  { value: 'reference', label: 'Reference' },
-  { value: 'bug', label: 'Bug/Issue' },
-  { value: 'question', label: 'Question' },
+  { value: 'all', label: 'All', color: null },
+  { value: 'general', label: 'General', color: 'bg-gray-500' },
+  { value: 'important', label: 'Important', color: 'bg-orange-500' },
+  { value: 'reference', label: 'Reference', color: 'bg-green-500' },
+  { value: 'bug', label: 'Bug', color: 'bg-red-500' },
+  { value: 'question', label: 'Question', color: 'bg-blue-500' },
 ];
 
 export function BookmarksPage() {
@@ -33,13 +33,13 @@ export function BookmarksPage() {
 
   // For editing bookmarks
   const [editingBookmark, setEditingBookmark] = useState<{
-    bookmark: Bookmark;
+    bookmark: BookmarkType;
     event: TimelineEvent;
     session: SessionDetail;
   } | null>(null);
 
   // For delete confirmation
-  const [deletingBookmark, setDeletingBookmark] = useState<Bookmark | null>(null);
+  const [deletingBookmark, setDeletingBookmark] = useState<BookmarkType | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // Load bookmarks on mount
@@ -53,14 +53,12 @@ export function BookmarksPage() {
     });
   }, [selectedCategory, searchQuery, selectedSort]);
 
-  const handleEdit = async (bookmark: Bookmark) => {
-    // Use cached session if already loaded, otherwise fetch it
+  const handleEdit = async (bookmark: BookmarkType) => {
     let session = sessionStore.currentSession?.session_id === bookmark.session_id
       ? sessionStore.currentSession
       : null;
 
     if (!session) {
-      // Fetch session and use the returned value directly (avoids React state timing issues)
       session = await sessionStore.fetchSession(bookmark.session_id);
       if (!session) {
         alert('Failed to load session');
@@ -76,7 +74,7 @@ export function BookmarksPage() {
     setEditingBookmark({ bookmark, event, session });
   };
 
-  const handleDelete = (bookmark: Bookmark) => {
+  const handleDelete = (bookmark: BookmarkType) => {
     setDeletingBookmark(bookmark);
   };
 
@@ -91,141 +89,143 @@ export function BookmarksPage() {
     }
   };
 
-  const handleSortChange = (value: string) => {
-    setSelectedSort(value);
-  };
+  const currentSort = SORT_OPTIONS.find(o => o.value === selectedSort);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-          Bookmarks
-        </h1>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search notes..."
-              className="w-full pl-10 pr-8 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2"
-              >
-                <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
-              </button>
-            )}
-          </div>
-
-          {/* Category Filter */}
-          <Listbox value={selectedCategory} onChange={setSelectedCategory}>
-            <div className="relative">
-              <Listbox.Button className="flex items-center gap-2 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 min-w-[160px] text-left">
-                <span className="flex-1">{CATEGORIES.find(c => c.value === selectedCategory)?.label}</span>
-                <ChevronDown className="w-4 h-4 flex-shrink-0" />
-              </Listbox.Button>
-              <Transition
-                as={Fragment}
-                enter="transition ease-out duration-100"
-                enterFrom="transform opacity-0 scale-95"
-                enterTo="transform opacity-100 scale-100"
-                leave="transition ease-in duration-75"
-                leaveFrom="transform opacity-100 scale-100"
-                leaveTo="transform opacity-0 scale-95"
-              >
-                <Listbox.Options className="absolute top-full mt-1 left-0 bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-md shadow-lg z-10 min-w-[160px] focus:outline-none max-h-60 overflow-auto">
-                  {CATEGORIES.map((cat) => (
-                    <Listbox.Option
-                      key={cat.value}
-                      value={cat.value}
-                      className={({ active }) =>
-                        `px-4 py-2 text-sm cursor-pointer flex items-center justify-between ${
-                          active ? 'bg-gray-100 dark:bg-gray-600' : ''
-                        }`
-                      }
-                    >
-                      {({ selected }) => (
-                        <>
-                          <span className={selected ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-white'}>
-                            {cat.label}
-                          </span>
-                          {selected && <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
-                        </>
-                      )}
-                    </Listbox.Option>
-                  ))}
-                </Listbox.Options>
-              </Transition>
+      <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        {/* Title row */}
+        <div className="px-6 pt-5 pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/25">
+                <Bookmark className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Bookmarks
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {bookmarkStore.loading ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Loading...
+                    </span>
+                  ) : (
+                    <span>{bookmarkStore.total} saved {bookmarkStore.total === 1 ? 'moment' : 'moments'}</span>
+                  )}
+                </p>
+              </div>
             </div>
-          </Listbox>
-
-          {/* Sort Dropdown */}
-          <Menu as="div" className="relative">
-            <Menu.Button className="flex items-center gap-2 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
-              Sort: {SORT_OPTIONS.find(o => o.value === selectedSort)?.label}
-              <ChevronDown className="w-4 h-4" />
-            </Menu.Button>
-            <Transition
-              as={Fragment}
-              enter="transition ease-out duration-100"
-              enterFrom="transform opacity-0 scale-95"
-              enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-75"
-              leaveFrom="transform opacity-100 scale-100"
-              leaveTo="transform opacity-0 scale-95"
-            >
-              <Menu.Items className="absolute top-full mt-1 right-0 bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-md shadow-lg z-10 min-w-[200px] focus:outline-none">
-                {SORT_OPTIONS.map((option) => (
-                  <Menu.Item key={option.value}>
-                    {({ active }) => (
-                      <button
-                        onClick={() => handleSortChange(option.value)}
-                        className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
-                          active ? 'bg-gray-100 dark:bg-gray-600' : ''
-                        } ${selectedSort === option.value ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-white'}`}
-                      >
-                        {option.label}
-                        {selectedSort === option.value && (
-                          <Check className="w-4 h-4" />
-                        )}
-                      </button>
-                    )}
-                  </Menu.Item>
-                ))}
-              </Menu.Items>
-            </Transition>
-          </Menu>
+          </div>
         </div>
 
-        {/* Count */}
-        <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-          {bookmarkStore.loading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading bookmarks...
+        {/* Filters row */}
+        <div className="px-6 pb-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search notes..."
+                className="w-full pl-10 pr-8 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5 text-gray-400" />
+                </button>
+              )}
             </div>
-          ) : (
-            <div>
-              {bookmarkStore.total} {bookmarkStore.total === 1 ? 'bookmark' : 'bookmarks'}
+
+            {/* Divider */}
+            <div className="hidden sm:block h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
+            {/* Category pills */}
+            <div className="flex items-center gap-1.5">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.value}
+                  onClick={() => setSelectedCategory(cat.value)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    selectedCategory === cat.value
+                      ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/20'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {cat.color && (
+                    <span className={`w-2 h-2 rounded-full ${cat.color}`} />
+                  )}
+                  {cat.label}
+                </button>
+              ))}
             </div>
-          )}
+
+            {/* Sort dropdown */}
+            <div className="ml-auto">
+              <Listbox value={selectedSort} onChange={setSelectedSort}>
+                <div className="relative">
+                  <Listbox.Button className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors">
+                    <SlidersHorizontal className="w-4 h-4 text-gray-400" />
+                    <span>{currentSort?.label}</span>
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  </Listbox.Button>
+                  <Transition
+                    as={Fragment}
+                    enter="transition ease-out duration-100"
+                    enterFrom="opacity-0 scale-95"
+                    enterTo="opacity-100 scale-100"
+                    leave="transition ease-in duration-75"
+                    leaveFrom="opacity-100 scale-100"
+                    leaveTo="opacity-0 scale-95"
+                  >
+                    <Listbox.Options className="absolute right-0 mt-2 w-48 origin-top-right bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl shadow-gray-900/10 dark:shadow-black/30 z-50 overflow-hidden focus:outline-none">
+                      {SORT_OPTIONS.map((option) => (
+                        <Listbox.Option
+                          key={option.value}
+                          value={option.value}
+                          className={({ active }) =>
+                            `flex items-center justify-between px-4 py-2.5 text-sm cursor-pointer transition-colors ${
+                              active ? 'bg-gray-50 dark:bg-gray-700/50' : ''
+                            }`
+                          }
+                        >
+                          {({ selected }) => (
+                            <>
+                              <span className={selected ? 'text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'}>
+                                {option.label}
+                              </span>
+                              {selected && <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
+                            </>
+                          )}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </Transition>
+                </div>
+              </Listbox>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Bookmarks List */}
+      {/* Bookmarks Grid */}
       <div className="flex-1 overflow-hidden">
         {bookmarkStore.error ? (
           <div className="flex items-center justify-center h-full">
-            <div className="text-red-600 dark:text-red-400">
-              Error: {bookmarkStore.error}
+            <div className="text-center">
+              <div className="text-red-500 dark:text-red-400 mb-2">
+                Failed to load bookmarks
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {bookmarkStore.error}
+              </p>
             </div>
           </div>
         ) : (
@@ -245,7 +245,6 @@ export function BookmarksPage() {
           bookmark={editingBookmark.bookmark}
           onClose={() => {
             setEditingBookmark(null);
-            // Refresh bookmarks
             bookmarkStore.fetchBookmarks();
           }}
         />
