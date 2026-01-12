@@ -100,16 +100,30 @@ export function Timeline({ events, session, selectedTypes }: TimelineProps) {
   });
 
   // Track active event based on scroll position
+  // Uses both container and window scroll to handle different layout scenarios
   useEffect(() => {
     const scrollContainer = parentRef.current;
     if (!scrollContainer) return;
 
     const updateActiveItem = () => {
-      // Calculate target position: center of visible area within scroll container
-      // virtualItem.start/end are absolute positions in the virtual list
-      const scrollTop = scrollContainer.scrollTop;
-      const clientHeight = scrollContainer.clientHeight;
-      const targetPosition = scrollTop + clientHeight / 2;
+      // Detect which scroll mechanism is in use:
+      // If container can scroll (scrollHeight > clientHeight), use container scroll
+      // Otherwise, use window scroll and calculate relative to container position
+      const containerCanScroll = scrollContainer.scrollHeight > scrollContainer.clientHeight;
+
+      let targetPosition: number;
+
+      if (containerCanScroll && scrollContainer.scrollTop > 0) {
+        // Container is scrolling - use container scroll position
+        const scrollTop = scrollContainer.scrollTop;
+        const clientHeight = scrollContainer.clientHeight;
+        targetPosition = scrollTop + clientHeight / 2;
+      } else {
+        // Window is scrolling - calculate position relative to container
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const viewportMiddle = window.innerHeight / 2;
+        targetPosition = viewportMiddle - containerRect.top;
+      }
 
       // Find the item that contains this position
       const virtualItems = virtualizer.getVirtualItems();
@@ -152,11 +166,13 @@ export function Timeline({ events, session, selectedTypes }: TimelineProps) {
     // Initial update
     updateActiveItem();
 
-    // Listen to scroll events
+    // Listen to both container and window scroll to handle all scenarios
     scrollContainer.addEventListener('scroll', updateActiveItem, { passive: true });
+    window.addEventListener('scroll', updateActiveItem, { passive: true });
     window.addEventListener('resize', updateActiveItem, { passive: true });
     return () => {
       scrollContainer.removeEventListener('scroll', updateActiveItem);
+      window.removeEventListener('scroll', updateActiveItem);
       window.removeEventListener('resize', updateActiveItem);
     };
   }, [groupedItems, virtualizer]);
