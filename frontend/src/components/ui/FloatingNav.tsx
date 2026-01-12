@@ -19,19 +19,28 @@ export function FloatingNav({ scrollContainerRef, threshold = 200 }: FloatingNav
     if (!container) return;
 
     const handleScroll = () => {
-      setIsVisible(container.scrollTop > threshold);
+      // Check both container scroll and window scroll
+      // Some layouts scroll the container, others scroll the window
+      const containerScrolled = container.scrollTop > threshold;
+      const windowScrolled = window.scrollY > threshold;
+      setIsVisible(containerScrolled || windowScrolled);
     };
 
+    // Listen to both container and window scroll
     container.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll(); // Initial check
 
     return () => {
       container.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, [scrollContainerRef, threshold]);
 
   const scrollToTop = () => {
+    // Scroll both container and window to handle different layout scenarios
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const goBack = () => {
