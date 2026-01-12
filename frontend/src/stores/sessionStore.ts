@@ -11,7 +11,6 @@ interface SessionState {
   loading: boolean;
   error: string | null;
   filters: SessionFilters;
-  sidebarCollapsed: boolean;
 
   setFilters: (filters: Partial<SessionFilters>) => void;
   resetFilters: () => void;
@@ -21,7 +20,6 @@ interface SessionState {
   fetchSession: (sessionId: string, includeThinking?: boolean) => Promise<SessionDetail | null>;
   fetchProjects: () => Promise<void>;
   clearSession: () => void;
-  toggleSidebar: () => void;
 }
 
 const DEFAULT_FILTERS: SessionFilters = {
@@ -38,7 +36,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   loading: false,
   error: null,
   filters: DEFAULT_FILTERS,
-  sidebarCollapsed: false,
 
   setFilters: (newFilters) => {
     set((state) => {
@@ -140,9 +137,5 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   clearSession: () => {
     set({ currentSession: null });
-  },
-
-  toggleSidebar: () => {
-    set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed }));
   },
 }));

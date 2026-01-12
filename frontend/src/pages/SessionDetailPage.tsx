@@ -19,6 +19,7 @@ import {
 import { useSessionStore } from '@/stores/sessionStore';
 import { formatDateTime, formatDuration } from '@/utils/formatters';
 import { Timeline } from '@/components/timeline/Timeline';
+import { TimelineTOC } from '@/components/navigation/TimelineTOC';
 import { getExportUrl } from '@/services/api';
 import type { SessionDetail } from '@/services/types';
 
@@ -37,6 +38,9 @@ export function SessionDetailPage() {
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
     new Set(['user', 'assistant', 'tool_use'])
   );
+  const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
+  const [activeEventType, setActiveEventType] = useState<string | null>(null);
+  const [currentTabIndex, setCurrentTabIndex] = useState(0);
 
   useEffect(() => {
     if (sessionId) {
@@ -61,6 +65,17 @@ export function SessionDetailPage() {
 
   const selectNone = () => {
     setSelectedTypes(new Set());
+  };
+
+  const handleNavigateToEvent = (eventIndex: number) => {
+    const element = document.querySelector(`[data-index="${eventIndex}"]`);
+    if (element) {
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest',
+      });
+    }
   };
 
   if (loading && !currentSession) {
@@ -100,7 +115,7 @@ export function SessionDetailPage() {
   ];
 
   return (
-    <Tab.Group>
+    <Tab.Group onChange={setCurrentTabIndex}>
       <div className="h-full flex flex-col">
         <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3">
           <div className="flex items-center justify-between mb-3">
@@ -270,17 +285,37 @@ export function SessionDetailPage() {
           </div>
         </div>
 
-        <Tab.Panels className="flex-1 min-h-0 overflow-hidden">
-          <Tab.Panel className="h-full">
-            <Timeline events={currentSession.events} session={currentSession} selectedTypes={selectedTypes} />
-          </Tab.Panel>
-          <Tab.Panel className="h-full">
-            <FilesTab session={currentSession} />
-          </Tab.Panel>
-          <Tab.Panel className="h-full">
-            <SummaryTab session={currentSession} />
-          </Tab.Panel>
-        </Tab.Panels>
+        <div className="flex-1 flex min-h-0">
+          <Tab.Panels className="flex-1 min-h-0 overflow-hidden">
+            <Tab.Panel className="h-full">
+              <Timeline
+                events={currentSession.events}
+                session={currentSession}
+                selectedTypes={selectedTypes}
+                onActiveIndexChange={setActiveItemIndex}
+                onActiveEventTypeChange={setActiveEventType}
+              />
+            </Tab.Panel>
+            <Tab.Panel className="h-full">
+              <FilesTab session={currentSession} />
+            </Tab.Panel>
+            <Tab.Panel className="h-full">
+              <SummaryTab session={currentSession} />
+            </Tab.Panel>
+          </Tab.Panels>
+
+          {/* TOC - only show on Timeline tab */}
+          {currentTabIndex === 0 && (
+            <TimelineTOC
+              events={currentSession.events}
+              session={currentSession}
+              selectedTypes={selectedTypes}
+              activeItemIndex={activeItemIndex}
+              activeEventType={activeEventType}
+              onNavigate={handleNavigateToEvent}
+            />
+          )}
+        </div>
       </div>
     </Tab.Group>
   );
