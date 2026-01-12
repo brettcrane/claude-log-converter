@@ -3,8 +3,6 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { TimelineEvent as TimelineEventType, SessionDetail } from '@/services/types';
 import { TimelineEvent } from './TimelineEvent';
 import { EventGroup } from './EventGroup';
-import { FloatingContextBadge } from './FloatingContextBadge';
-import { FloatingNav } from '@/components/ui/FloatingNav';
 import { Toast } from '@/components/ui/Toast';
 
 // Represents either a single event or a group of events
@@ -73,13 +71,13 @@ interface TimelineProps {
   events: TimelineEventType[];
   session: SessionDetail;
   selectedTypes: Set<string>;
+  onActiveIndexChange?: (index: number | null) => void;
 }
 
-export function Timeline({ events, session, selectedTypes }: TimelineProps) {
+export function Timeline({ events, session, selectedTypes, onActiveIndexChange }: TimelineProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Active event tracking for floating badge and rail highlight
-  const [activeEventType, setActiveEventType] = useState<string | null>(null);
+  // Active event tracking for TOC
   const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
 
   // Toast state
@@ -133,9 +131,7 @@ export function Timeline({ events, session, selectedTypes }: TimelineProps) {
         if (virtualItem.start <= targetPosition && virtualItem.end > targetPosition) {
           const item = groupedItems[virtualItem.index];
           if (item) {
-            const eventType = item.type === 'single' ? item.event.type : item.groupType;
             setActiveItemIndex(virtualItem.index);
-            setActiveEventType(eventType);
           }
           return;
         }
@@ -158,7 +154,6 @@ export function Timeline({ events, session, selectedTypes }: TimelineProps) {
         const item = groupedItems[closestItem.index];
         if (item) {
           setActiveItemIndex(closestItem.index);
-          setActiveEventType(item.type === 'single' ? item.event.type : item.groupType);
         }
       }
     };
@@ -176,6 +171,13 @@ export function Timeline({ events, session, selectedTypes }: TimelineProps) {
       window.removeEventListener('resize', updateActiveItem);
     };
   }, [groupedItems, virtualizer]);
+
+  // Notify parent of active index changes
+  useEffect(() => {
+    if (onActiveIndexChange) {
+      onActiveIndexChange(activeItemIndex);
+    }
+  }, [activeItemIndex, onActiveIndexChange]);
 
   const handleCopySuccess = useCallback(() => {
     setToastMessage('Event copied to clipboard');
@@ -241,9 +243,6 @@ export function Timeline({ events, session, selectedTypes }: TimelineProps) {
           })}
         </div>
       </div>
-
-      <FloatingContextBadge eventType={activeEventType} />
-      <FloatingNav scrollContainerRef={parentRef} />
 
       {showToast && (
         <Toast

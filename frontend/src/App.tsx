@@ -5,6 +5,7 @@ import { HomePage } from '@/pages/HomePage';
 import { SessionDetailPage } from '@/pages/SessionDetailPage';
 import { UploadPage } from '@/pages/UploadPage';
 import { BookmarksPage } from '@/pages/BookmarksPage';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,18 +16,26 @@ const queryClient = new QueryClient({
   },
 });
 
+function AppRoutes() {
+  useKeyboardShortcuts();
+
+  return (
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        <Route index element={<HomePage />} />
+        <Route path="session/:sessionId" element={<SessionDetailPage />} />
+        <Route path="upload" element={<UploadPage />} />
+        <Route path="bookmarks" element={<BookmarksPage />} />
+      </Route>
+    </Routes>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<HomePage />} />
-            <Route path="session/:sessionId" element={<SessionDetailPage />} />
-            <Route path="upload" element={<UploadPage />} />
-            <Route path="bookmarks" element={<BookmarksPage />} />
-          </Route>
-        </Routes>
+        <AppRoutes />
       </BrowserRouter>
     </QueryClientProvider>
   );
