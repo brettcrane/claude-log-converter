@@ -17,6 +17,7 @@ interface TimelineTOCProps {
   session: SessionDetail;
   selectedTypes: Set<string>;
   activeItemIndex: number | null;
+  activeEventType: string | null;
   onNavigate: (eventIndex: number) => void;
   initialCollapsed?: boolean;
 }
@@ -25,6 +26,7 @@ export function TimelineTOC({
   events,
   selectedTypes,
   activeItemIndex,
+  activeEventType,
   onNavigate,
   initialCollapsed = false,
 }: TimelineTOCProps) {
@@ -132,9 +134,14 @@ export function TimelineTOC({
 
   return (
     <aside className="w-80 flex-shrink-0 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col" aria-label="Table of contents">
-      {/* Header */}
+      {/* Header with section indicator */}
       <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Timeline</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Timeline</h2>
+          {activeEventType && (
+            <SectionIndicator type={activeEventType} />
+          )}
+        </div>
         <button
           onClick={() => setIsCollapsed(true)}
           className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
@@ -275,5 +282,25 @@ function TOCItemComponent({
         </ul>
       )}
     </li>
+  );
+}
+
+// Section indicator badge shown in TOC header
+function SectionIndicator({ type }: { type: string }) {
+  const config = {
+    user: { icon: <User className="w-3 h-3" />, label: 'User', bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-700 dark:text-blue-300' },
+    assistant: { icon: <Bot className="w-3 h-3" />, label: 'Assistant', bg: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-700 dark:text-purple-300' },
+    tool_use: { icon: <Wrench className="w-3 h-3" />, label: 'Tool', bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-300' },
+    tool_result: { icon: <Wrench className="w-3 h-3" />, label: 'Result', bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-600 dark:text-gray-400' },
+    thinking: { icon: <Bot className="w-3 h-3" />, label: 'Thinking', bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-600 dark:text-gray-400' },
+  }[type];
+
+  if (!config) return null;
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${config.bg} ${config.text} transition-all duration-200`}>
+      {config.icon}
+      {config.label}
+    </span>
   );
 }

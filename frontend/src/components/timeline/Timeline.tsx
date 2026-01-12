@@ -72,9 +72,10 @@ interface TimelineProps {
   session: SessionDetail;
   selectedTypes: Set<string>;
   onActiveIndexChange?: (index: number | null) => void;
+  onActiveEventTypeChange?: (type: string | null) => void;
 }
 
-export function Timeline({ events, session, selectedTypes, onActiveIndexChange }: TimelineProps) {
+export function Timeline({ events, session, selectedTypes, onActiveIndexChange, onActiveEventTypeChange }: TimelineProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Active event tracking for TOC
@@ -178,6 +179,19 @@ export function Timeline({ events, session, selectedTypes, onActiveIndexChange }
       onActiveIndexChange(activeItemIndex);
     }
   }, [activeItemIndex, onActiveIndexChange]);
+
+  // Notify parent of active event type changes
+  useEffect(() => {
+    if (onActiveEventTypeChange && activeItemIndex !== null) {
+      const item = groupedItems[activeItemIndex];
+      if (item) {
+        const eventType = item.type === 'single' ? item.event.type : item.groupType;
+        onActiveEventTypeChange(eventType);
+      }
+    } else if (onActiveEventTypeChange) {
+      onActiveEventTypeChange(null);
+    }
+  }, [activeItemIndex, groupedItems, onActiveEventTypeChange]);
 
   const handleCopySuccess = useCallback(() => {
     setToastMessage('Event copied to clipboard');

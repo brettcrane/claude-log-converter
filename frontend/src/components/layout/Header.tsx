@@ -1,7 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Terminal, Upload, FolderOpen, Bookmark } from 'lucide-react';
 import { useEffect } from 'react';
-import { ProjectDropdown } from '@/components/navigation/ProjectDropdown';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 
@@ -43,17 +42,6 @@ export function Header() {
               Sessions
             </Link>
             <Link
-              to="/upload"
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
-                isActive('/upload')
-                  ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700'
-              }`}
-            >
-              <Upload className="w-4 h-4" />
-              Upload
-            </Link>
-            <Link
               to="/bookmarks"
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
                 isActive('/bookmarks')
@@ -71,10 +59,18 @@ export function Header() {
             </Link>
           </nav>
 
-          {/* Right: Project Dropdown */}
-          <div className="flex items-center gap-3">
-            <ProjectDropdown />
-          </div>
+          {/* Right: Upload */}
+          <Link
+            to="/upload"
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+              isActive('/upload')
+                ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700'
+            }`}
+          >
+            <Upload className="w-4 h-4" />
+            Upload
+          </Link>
         </div>
       </div>
     </header>

@@ -39,6 +39,7 @@ export function SessionDetailPage() {
     new Set(['user', 'assistant', 'tool_use'])
   );
   const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
+  const [activeEventType, setActiveEventType] = useState<string | null>(null);
   const [currentTabIndex, setCurrentTabIndex] = useState(0);
 
   useEffect(() => {
@@ -292,6 +293,7 @@ export function SessionDetailPage() {
                 session={currentSession}
                 selectedTypes={selectedTypes}
                 onActiveIndexChange={setActiveItemIndex}
+                onActiveEventTypeChange={setActiveEventType}
               />
             </Tab.Panel>
             <Tab.Panel className="h-full">
@@ -309,6 +311,7 @@ export function SessionDetailPage() {
               session={currentSession}
               selectedTypes={selectedTypes}
               activeItemIndex={activeItemIndex}
+              activeEventType={activeEventType}
               onNavigate={handleNavigateToEvent}
             />
           )}

@@ -1,5 +1,6 @@
 import { Search, X } from 'lucide-react';
 import { useSessionStore } from '@/stores/sessionStore';
+import { ProjectDropdown } from '@/components/navigation/ProjectDropdown';
 
 export function SessionFilters() {
   const { filters, setFilters, fetchSessions } = useSessionStore();
@@ -38,6 +39,13 @@ export function SessionFilters() {
 
   return (
     <div className="flex flex-wrap gap-3 items-end">
+      <div>
+        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Project
+        </label>
+        <ProjectDropdown />
+      </div>
+
       <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[200px] max-w-md">
         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
           Search conversations
