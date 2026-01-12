@@ -1,6 +1,6 @@
 import { useEffect, useState, Fragment } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Tab, Switch } from '@headlessui/react';
+import { Tab, Switch, Menu, Transition } from '@headlessui/react';
 import {
   ArrowLeft,
   Clock,
@@ -13,6 +13,8 @@ import {
   AlertCircle,
   CheckCircle,
   ListTodo,
+  Filter,
+  ChevronDown,
 } from 'lucide-react';
 import { useSessionStore } from '@/stores/sessionStore';
 import { formatDateTime, formatDuration } from '@/utils/formatters';
@@ -20,10 +22,21 @@ import { Timeline } from '@/components/timeline/Timeline';
 import { getExportUrl } from '@/services/api';
 import type { SessionDetail } from '@/services/types';
 
+const EVENT_TYPES = [
+  { value: 'user', label: 'User', color: 'bg-blue-500' },
+  { value: 'assistant', label: 'Assistant', color: 'bg-purple-500' },
+  { value: 'tool_use', label: 'Tool Use', color: 'bg-gray-500' },
+  { value: 'tool_result', label: 'Tool Result', color: 'bg-gray-400' },
+  { value: 'thinking', label: 'Thinking', color: 'bg-gray-300' },
+];
+
 export function SessionDetailPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const { currentSession, loading, error, fetchSession, clearSession } = useSessionStore();
   const [includeThinking, setIncludeThinking] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
+    new Set(['user', 'assistant', 'tool_use'])
+  );
 
   useEffect(() => {
     if (sessionId) {
@@ -31,6 +44,24 @@ export function SessionDetailPage() {
     }
     return () => clearSession();
   }, [sessionId, includeThinking, fetchSession, clearSession]);
+
+  const toggleType = (type: string) => {
+    const newSet = new Set(selectedTypes);
+    if (newSet.has(type)) {
+      newSet.delete(type);
+    } else {
+      newSet.add(type);
+    }
+    setSelectedTypes(newSet);
+  };
+
+  const selectAll = () => {
+    setSelectedTypes(new Set(EVENT_TYPES.map((t) => t.value)));
+  };
+
+  const selectNone = () => {
+    setSelectedTypes(new Set());
+  };
 
   if (loading && !currentSession) {
     return (
@@ -158,29 +189,90 @@ export function SessionDetailPage() {
             </div>
           </div>
 
-          <Tab.List className="flex gap-1 border-b border-gray-200 dark:border-gray-700 -mb-px">
-            {tabs.map((tab) => (
-              <Tab key={tab.label} as={Fragment}>
-                {({ selected }) => (
-                  <button
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors focus:outline-none ${
-                      selected
-                        ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
-                        : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                    }`}
-                  >
-                    <tab.icon className="w-3 h-3" />
-                    {tab.label}
-                  </button>
-                )}
-              </Tab>
-            ))}
-          </Tab.List>
+          <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 -mb-px">
+            <Tab.List className="flex gap-1">
+              {tabs.map((tab) => (
+                <Tab key={tab.label} as={Fragment}>
+                  {({ selected }) => (
+                    <button
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors focus:outline-none ${
+                        selected
+                          ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                          : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                      }`}
+                    >
+                      <tab.icon className="w-3 h-3" />
+                      {tab.label}
+                    </button>
+                  )}
+                </Tab>
+              ))}
+            </Tab.List>
+
+            <div className="flex items-center gap-3 pb-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {currentSession.events.filter((e) => selectedTypes.has(e.type)).length} of {currentSession.events.length} events
+              </span>
+
+              <Menu as="div" className="relative">
+                <Menu.Button className="flex items-center gap-1.5 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <Filter className="w-3 h-3" />
+                  Filter
+                  <ChevronDown className="w-3 h-3" />
+                </Menu.Button>
+
+                <Transition
+                  as={Fragment}
+                  enter="transition ease-out duration-100"
+                  enterFrom="transform opacity-0 scale-95"
+                  enterTo="transform opacity-100 scale-100"
+                  leave="transition ease-in duration-75"
+                  leaveFrom="transform opacity-100 scale-100"
+                  leaveTo="transform opacity-0 scale-95"
+                >
+                  <Menu.Items className="absolute right-0 mt-2 w-44 origin-top-right bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg focus:outline-none z-50">
+                    <div className="p-2 border-b border-gray-200 dark:border-gray-700 flex gap-2">
+                      <button
+                        onClick={selectAll}
+                        className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                      >
+                        All
+                      </button>
+                      <button
+                        onClick={selectNone}
+                        className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                      >
+                        None
+                      </button>
+                    </div>
+                    <div className="p-2 space-y-1">
+                      {EVENT_TYPES.map((type) => (
+                        <Menu.Item key={type.value}>
+                          {() => (
+                            <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={selectedTypes.has(type.value)}
+                                onChange={() => toggleType(type.value)}
+                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className={`w-2 h-2 rounded-full ${type.color}`} />
+                              <span className="text-sm text-gray-900 dark:text-white">{type.label}</span>
+                            </label>
+                          )}
+                        </Menu.Item>
+                      ))}
+                    </div>
+                  </Menu.Items>
+                </Transition>
+              </Menu>
+            </div>
+          </div>
         </div>
 
         <Tab.Panels className="flex-1 min-h-0 overflow-hidden">
           <Tab.Panel className="h-full">
-            <Timeline events={currentSession.events} session={currentSession} />
+            <Timeline events={currentSession.events} session={currentSession} selectedTypes={selectedTypes} />
           </Tab.Panel>
           <Tab.Panel className="h-full">
             <FilesTab session={currentSession} />

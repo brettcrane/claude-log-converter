@@ -1,7 +1,5 @@
-import { useRef, useState, useEffect, useCallback, useMemo, Fragment } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Menu, Transition } from '@headlessui/react';
-import { Filter, ChevronDown } from 'lucide-react';
 import type { TimelineEvent as TimelineEventType, SessionDetail } from '@/services/types';
 import { TimelineEvent } from './TimelineEvent';
 import { EventGroup } from './EventGroup';
@@ -74,21 +72,11 @@ function groupEvents(events: TimelineEventType[]): TimelineItem[] {
 interface TimelineProps {
   events: TimelineEventType[];
   session: SessionDetail;
+  selectedTypes: Set<string>;
 }
 
-const EVENT_TYPES = [
-  { value: 'user', label: 'User', color: 'bg-blue-500' },
-  { value: 'assistant', label: 'Assistant', color: 'bg-purple-500' },
-  { value: 'tool_use', label: 'Tool Use', color: 'bg-gray-500' },
-  { value: 'tool_result', label: 'Tool Result', color: 'bg-gray-400' },
-  { value: 'thinking', label: 'Thinking', color: 'bg-gray-300' },
-];
-
-export function Timeline({ events, session }: TimelineProps) {
+export function Timeline({ events, session, selectedTypes }: TimelineProps) {
   const parentRef = useRef<HTMLDivElement>(null);
-  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
-    new Set(['user', 'assistant', 'tool_use'])
-  );
 
   // Active event tracking for floating badge and rail highlight
   const [activeEventType, setActiveEventType] = useState<string | null>(null);
@@ -117,11 +105,11 @@ export function Timeline({ events, session }: TimelineProps) {
     if (!scrollContainer) return;
 
     const updateActiveItem = () => {
-      // Get the container's position relative to viewport
-      const containerRect = scrollContainer.getBoundingClientRect();
-      // Calculate target position: middle of viewport, relative to container's top
-      const viewportMiddle = window.innerHeight / 2;
-      const targetPosition = viewportMiddle - containerRect.top;
+      // Calculate target position: center of visible area within scroll container
+      // virtualItem.start/end are absolute positions in the virtual list
+      const scrollTop = scrollContainer.scrollTop;
+      const clientHeight = scrollContainer.clientHeight;
+      const targetPosition = scrollTop + clientHeight / 2;
 
       // Find the item that contains this position
       const virtualItems = virtualizer.getVirtualItems();
@@ -173,24 +161,6 @@ export function Timeline({ events, session }: TimelineProps) {
     };
   }, [groupedItems, virtualizer]);
 
-  const toggleType = (type: string) => {
-    const newSet = new Set(selectedTypes);
-    if (newSet.has(type)) {
-      newSet.delete(type);
-    } else {
-      newSet.add(type);
-    }
-    setSelectedTypes(newSet);
-  };
-
-  const selectAll = () => {
-    setSelectedTypes(new Set(EVENT_TYPES.map((t) => t.value)));
-  };
-
-  const selectNone = () => {
-    setSelectedTypes(new Set());
-  };
-
   const handleCopySuccess = useCallback(() => {
     setToastMessage('Event copied to clipboard');
     setToastType('success');
@@ -205,67 +175,6 @@ export function Timeline({ events, session }: TimelineProps) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex-shrink-0 px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            {filteredEvents.length} of {events.length} events
-          </span>
-
-          <Menu as="div" className="relative">
-            <Menu.Button className="flex items-center gap-2 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
-              <Filter className="w-4 h-4" />
-              Filter
-              <ChevronDown className="w-4 h-4" />
-            </Menu.Button>
-
-            <Transition
-              as={Fragment}
-              enter="transition ease-out duration-100"
-              enterFrom="transform opacity-0 scale-95"
-              enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-75"
-              leaveFrom="transform opacity-100 scale-100"
-              leaveTo="transform opacity-0 scale-95"
-            >
-              <Menu.Items className="absolute right-0 mt-2 w-44 origin-top-right bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg focus:outline-none">
-                <div className="p-2 border-b border-gray-200 dark:border-gray-700 flex gap-2">
-                  <button
-                    onClick={selectAll}
-                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={selectNone}
-                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-                  >
-                    None
-                  </button>
-                </div>
-                <div className="p-2 space-y-1">
-                  {EVENT_TYPES.map((type) => (
-                    <Menu.Item key={type.value}>
-                      {() => (
-                        <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={selectedTypes.has(type.value)}
-                            onChange={() => toggleType(type.value)}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span className={`w-2 h-2 rounded-full ${type.color}`} />
-                          <span className="text-sm text-gray-900 dark:text-white">{type.label}</span>
-                        </label>
-                      )}
-                    </Menu.Item>
-                  ))}
-                </div>
-              </Menu.Items>
-            </Transition>
-          </Menu>
-        </div>
-      </div>
-
       <div ref={parentRef} className="flex-1 min-h-0 overflow-auto">
         <div
           style={{
