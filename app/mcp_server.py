@@ -54,9 +54,9 @@ TOOLS = [
         name="search_sessions",
         description=(
             "Search Claude Code sessions using full-text search. "
-            "Finds sessions containing the search term in conversation content, "
-            "project names, git branches, or working directories. "
-            "Returns markdown-formatted session summaries."
+            "By default, searches only the CURRENT PROJECT (detected from cwd). "
+            "Use scope='all' to search across all projects. "
+            "Returns session summaries with metadata and matching snippets."
         ),
         inputSchema={
             "type": "object",
@@ -65,9 +65,25 @@ TOOLS = [
                     "type": "string",
                     "description": "Search term to find in session content",
                 },
+                "cwd": {
+                    "type": "string",
+                    "description": (
+                        "Current working directory - used to auto-detect project scope. "
+                        "Pass your current working directory to search within that project."
+                    ),
+                },
+                "scope": {
+                    "type": "string",
+                    "enum": ["project", "all"],
+                    "description": (
+                        "Search scope: 'project' (default) searches only current project, "
+                        "'all' searches across all projects"
+                    ),
+                    "default": "project",
+                },
                 "project": {
                     "type": "string",
-                    "description": "Filter by project name (optional)",
+                    "description": "Explicit project name filter (overrides cwd detection)",
                 },
                 "limit": {
                     "type": "integer",
@@ -116,15 +132,26 @@ TOOLS = [
     Tool(
         name="list_sessions",
         description=(
-            "List recent sessions with optional filtering by project or date range. "
+            "List recent sessions. By default, lists only CURRENT PROJECT sessions. "
+            "Use scope='all' to list across all projects. "
             "Returns session summaries sorted by most recent first."
         ),
         inputSchema={
             "type": "object",
             "properties": {
+                "cwd": {
+                    "type": "string",
+                    "description": "Current working directory - used to auto-detect project scope",
+                },
+                "scope": {
+                    "type": "string",
+                    "enum": ["project", "all"],
+                    "description": "Search scope: 'project' (default) or 'all'",
+                    "default": "project",
+                },
                 "project": {
                     "type": "string",
-                    "description": "Filter by project name",
+                    "description": "Explicit project name filter (overrides cwd detection)",
                 },
                 "date_from": {
                     "type": "string",
@@ -335,8 +362,13 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 async def handle_search_sessions(args: dict) -> str:
     """Search sessions using FTS5 full-text search."""
     query = args["query"]
-    project = args.get("project")
+    cwd = args.get("cwd")
+    scope = args.get("scope", "project")
+    explicit_project = args.get("project")
     limit = min(args.get("limit", 10), 50)
+
+    # Resolve project filter from cwd/scope/explicit
+    project, scope_desc = resolve_project_filter(cwd, scope, explicit_project)
 
     sessions, total = session_indexer.get_sessions(
         search=query,
@@ -349,7 +381,9 @@ async def handle_search_sessions(args: dict) -> str:
     if query and sessions:
         snippets = get_search_snippets(query, [s.session_id for s in sessions])
 
-    return format_session_list(sessions, total, query=query, snippets=snippets)
+    return format_session_list(
+        sessions, total, query=query, snippets=snippets, scope_desc=scope_desc
+    )
 
 
 async def handle_get_session(args: dict) -> str:
@@ -383,8 +417,13 @@ async def handle_list_projects(args: dict) -> str:
 
 async def handle_list_sessions(args: dict) -> str:
     """List recent sessions with optional filters."""
-    project = args.get("project")
+    cwd = args.get("cwd")
+    scope = args.get("scope", "project")
+    explicit_project = args.get("project")
     limit = min(args.get("limit", 10), 50)
+
+    # Resolve project filter from cwd/scope/explicit
+    project, scope_desc = resolve_project_filter(cwd, scope, explicit_project)
 
     # Parse dates if provided
     date_from = None
@@ -409,7 +448,7 @@ async def handle_list_sessions(args: dict) -> str:
         limit=limit,
     )
 
-    return format_session_list(sessions, total)
+    return format_session_list(sessions, total, scope_desc=scope_desc)
 
 
 async def handle_list_bookmarks(args: dict) -> str:
@@ -529,6 +568,75 @@ async def handle_search_in_session(args: dict) -> str:
 
 
 # =============================================================================
+# Project Detection Helpers
+# =============================================================================
+
+
+def detect_project_from_cwd(cwd: str | None) -> str | None:
+    """Detect project name from current working directory.
+
+    Matches cwd against known project paths to find the best match.
+    Returns project name if found, None otherwise.
+    """
+    if not cwd:
+        return None
+
+    projects = session_indexer.get_projects()
+    if not projects:
+        return None
+
+    # Normalize cwd path
+    cwd = cwd.rstrip("/")
+
+    # Try exact match first
+    for p in projects:
+        if p["decoded_path"].rstrip("/") == cwd:
+            return p["name"]
+
+    # Try matching cwd as subdirectory of project (cwd is inside project)
+    for p in projects:
+        project_path = p["decoded_path"].rstrip("/")
+        if cwd.startswith(project_path + "/") or cwd == project_path:
+            return p["name"]
+
+    # Try matching project as subdirectory of cwd (project is inside cwd)
+    # This handles monorepo scenarios
+    for p in projects:
+        project_path = p["decoded_path"].rstrip("/")
+        if project_path.startswith(cwd + "/"):
+            return p["name"]
+
+    return None
+
+
+def resolve_project_filter(
+    cwd: str | None,
+    scope: str | None,
+    explicit_project: str | None
+) -> tuple[str | None, str]:
+    """Resolve the project filter based on cwd, scope, and explicit project.
+
+    Returns:
+        Tuple of (project_name_or_none, scope_description)
+    """
+    # Explicit project overrides everything
+    if explicit_project:
+        return explicit_project, f"project '{explicit_project}'"
+
+    # If scope is 'all', no project filter
+    if scope == "all":
+        return None, "all projects"
+
+    # Default scope is 'project' - try to detect from cwd
+    detected = detect_project_from_cwd(cwd)
+    if detected:
+        return detected, f"project '{detected}' (auto-detected from cwd)"
+
+    # Couldn't detect project, search all with a note
+    return None, "all projects (could not detect project from cwd)"
+
+
+# =============================================================================
 # Search Helpers
 # =============================================================================
 
@@ -598,12 +706,15 @@ def format_session_list(
     total: int,
     query: str | None = None,
     snippets: dict[str, str] | None = None,
+    scope_desc: str | None = None,
 ) -> str:
     """Format session list as markdown with optional search snippets."""
     lines = ["# Session Search Results", ""]
 
     if query:
         lines.append(f"**Search query:** {query}")
+    if scope_desc:
+        lines.append(f"**Scope:** {scope_desc}")
     lines.append(f"**Found:** {total} sessions")
     lines.append("")
 
@@ -620,13 +731,13 @@ def format_session_list(
 
         if s.start_time:
             lines.append(f"- **Date:** {format_date(s.start_time)}")
+        if s.duration_seconds:
+            minutes = s.duration_seconds // 60
+            if minutes > 0:
+                lines.append(f"- **Duration:** {minutes}m")
         if s.git_branch:
             lines.append(f"- **Branch:** `{s.git_branch}`")
-        if s.cwd:
-            lines.append(f"- **Directory:** `{s.cwd}`")
-        lines.append(f"- **Messages:** {s.message_count}")
-        lines.append(f"- **Tool calls:** {s.tool_count}")
-        lines.append(f"- **Files modified:** {s.files_modified_count}")
+        lines.append(f"- **Messages:** {s.message_count} | **Tools:** {s.tool_count} | **Files modified:** {s.files_modified_count}")
         lines.append(f"- **Session ID:** `{s.session_id}`")
 
         # Add search snippet if available
