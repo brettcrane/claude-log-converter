@@ -21,24 +21,68 @@ claude-log-converter/
 ├── app/                  # FastAPI backend
 │   ├── api/routes/       # API endpoints
 │   ├── services/         # Business logic (log_parser, session_indexer, session_db)
-│   └── models/           # Pydantic models
+│   ├── models/           # Pydantic models
+│   └── mcp_server.py     # MCP server for Claude Code integration
 ├── frontend/             # React source code (KEEP THIS - needed for changes)
 ├── static/               # Built frontend (gitignored, regenerated)
 ├── archive/              # Legacy/unmaintained code
 ├── .claude/              # Claude Code config
 │   ├── commands/         # Custom slash commands
 │   └── skills/           # Domain knowledge documentation
-├── run.py                # Single entry point
+├── run.py                # Single entry point (web app)
 └── requirements.txt
 ```
 
-### SQLite Backend (NEW)
+### SQLite Backend
 - **Fast search**: 100-500x faster than file scanning using FTS5 full-text search
 - **Hybrid approach**: JSONL files remain immutable source of truth, SQLite is expendable cache
 - **Auto-sync**: Detects new/modified sessions on startup via file mtime tracking
 - **Zero risk**: Can rebuild index from JSONL at any time (safe to delete `sessions.db`)
 - **Feature flag**: Set `CLAUDE_LOG_USE_SQLITE_INDEX=false` to disable (falls back to file scanning)
 - **Database location**: `~/.claude-log-converter/sessions.db`
+
+### MCP Server (Session Memory)
+The MCP server allows Claude Code to query its own past sessions, providing "memory" of previous work.
+
+**Tools exposed:**
+| Tool | Description |
+|------|-------------|
+| `search_sessions` | Full-text search with matching snippets |
+| `get_session` | Get full session details with timeline |
+| `get_session_summary` | Quick overview (metadata only, no conversation) |
+| `search_in_session` | Search within a session for specific content |
+| `list_sessions` | List recent sessions with filters |
+| `list_projects` | List all indexed projects |
+| `list_bookmarks` | View saved bookmarks |
+| `create_bookmark` | Bookmark important events |
+| `delete_bookmark` | Remove bookmarks |
+
+**Setup:**
+```bash
+# Add to Claude Code (user-wide)
+claude mcp add session-memory --scope user -- python -m app.mcp_server
+
+# Or add to ~/.claude.json manually
+```
+
+**Configuration example (`~/.claude.json`):**
+```json
+{
+  "mcpServers": {
+    "session-memory": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["-m", "app.mcp_server"],
+      "cwd": "/path/to/claude-log-converter"
+    }
+  }
+}
+```
+
+**Example use cases:**
+- "What did I work on yesterday?"
+- "Find the session where I fixed the authentication bug"
+- "How did I implement caching before?"
 
 ## CRITICAL: TODO.md Workflow
 **Update TODO.md IMMEDIATELY after completing any task from the list.**
@@ -74,7 +118,8 @@ npm run build        # Outputs to ../static/
 ### Key Commands
 | Command | Description |
 |---------|-------------|
-| `python run.py` | Start production server (serves built frontend) |
+| `python run.py` | Start web server (serves built frontend) |
+| `python -m app.mcp_server` | Start MCP server (for Claude Code integration) |
 | `cd frontend && npm run dev` | Frontend dev with hot reload |
 | `cd frontend && npm run build` | Build frontend to static/ |
 | `ruff check app/` | Lint Python code |
