@@ -28,7 +28,7 @@ export function Breadcrumbs() {
   // Add session if viewing session detail
   if (sessionId && currentSession) {
     segments.push({
-      label: `Session #${sessionId.slice(0, 8)}`,
+      label: sessionId,
       href: `/session/${sessionId}`,
     });
   }

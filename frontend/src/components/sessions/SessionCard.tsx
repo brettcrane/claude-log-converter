@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Clock, GitBranch, FileText, Wrench, Calendar } from 'lucide-react';
+import { Clock, GitBranch, FileText, Wrench, Calendar, Hash } from 'lucide-react';
 import type { SessionSummary } from '@/services/types';
 import { formatDateTime, formatDuration, formatRelativeTime } from '@/utils/formatters';
 
@@ -20,6 +20,10 @@ export function SessionCard({ session }: SessionCardProps) {
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-md" title={session.cwd || ''}>
             {session.cwd || 'Unknown directory'}
+          </p>
+          <p className="text-xs font-mono text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1">
+            <Hash className="w-3 h-3" />
+            {session.session_id}
           </p>
         </div>
         <span className="text-xs text-gray-500 dark:text-gray-400">
