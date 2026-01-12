@@ -10,6 +10,7 @@ This implementation provides:
 import json
 import logging
 import sqlite3
+import threading
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -31,16 +32,19 @@ class SessionDatabase:
         """
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        # Lock to prevent concurrent FTS5 repair operations
+        self._fts5_repair_lock = threading.Lock()
         self._init_schema()
         logger.info(f"Initialized SessionDatabase at {db_path}")
 
     @contextmanager
     def _get_connection(self):
         """Get a database connection with proper cleanup."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10.0)
         conn.row_factory = sqlite3.Row
-        # Enable foreign keys
+        # Enable foreign keys and set busy timeout for concurrent access
         conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA busy_timeout = 5000")  # Wait up to 5s for locks
         try:
             yield conn
             conn.commit()
@@ -254,6 +258,10 @@ class SessionDatabase:
             Tuple of (session list, total count)
         """
         try:
+            # Auto-repair FTS5 if needed before searching
+            if search:
+                self.repair_fts5_if_needed()
+
             with self._get_connection() as conn:
                 # Build query with filters
                 where_clauses = []
@@ -558,12 +566,65 @@ class SessionDatabase:
                         logger.error(f"Failed to index {jsonl_file}: {e}")
                         continue
 
+            # Rebuild FTS5 index to ensure consistency
+            self._rebuild_fts5()
+
             logger.info(f"Rebuild complete: indexed {count} sessions")
             return count
 
         except Exception as e:
             logger.error(f"Failed to rebuild index: {e}", exc_info=True)
             raise
+
+    def _rebuild_fts5(self) -> None:
+        """Rebuild the FTS5 index to fix any corruption.
+
+        This should be called after bulk inserts or when FTS5 corruption is detected.
+        """
+        try:
+            with self._get_connection() as conn:
+                conn.execute("INSERT INTO events_fts(events_fts) VALUES('rebuild')")
+                logger.info("FTS5 index rebuilt successfully")
+        except Exception as e:
+            logger.error(f"Failed to rebuild FTS5 index: {e}", exc_info=True)
+            raise
+
+    def repair_fts5_if_needed(self) -> bool:
+        """Check if FTS5 is corrupted and repair if needed.
+
+        Uses FTS5's built-in integrity-check command which verifies the index
+        is consistent with the content table. Thread-safe via mutex lock.
+
+        Returns:
+            True if repair was needed and successful, False if no repair needed
+        """
+        # Use non-blocking lock acquisition to prevent request pile-up
+        # If another thread is already repairing, we skip and let the query
+        # proceed (it will either use the repaired index or fall back)
+        if not self._fts5_repair_lock.acquire(blocking=False):
+            logger.debug("FTS5 repair already in progress, skipping check")
+            return False
+
+        try:
+            with self._get_connection() as conn:
+                # Use FTS5 integrity-check command - this verifies the index
+                # is consistent with the external content table (events)
+                conn.execute(
+                    "INSERT INTO events_fts(events_fts, rank) VALUES('integrity-check', 1)"
+                )
+                return False  # No repair needed
+        except Exception as e:
+            if "malformed" in str(e).lower() or "corrupt" in str(e).lower():
+                logger.warning("FTS5 corruption detected, attempting repair...")
+                try:
+                    self._rebuild_fts5()
+                    return True  # Repair successful
+                except Exception as repair_error:
+                    logger.error(f"FTS5 repair failed: {repair_error}")
+                    raise
+            raise
+        finally:
+            self._fts5_repair_lock.release()
 
     def get_indexed_session_count(self) -> int:
         """Get the number of sessions in the index.

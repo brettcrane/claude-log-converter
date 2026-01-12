@@ -544,6 +544,9 @@ def get_search_snippets(query: str, session_ids: list[str]) -> dict[str, str]:
     snippets = {}
 
     try:
+        # Auto-repair FTS5 if corrupted
+        session_indexer.repair_fts5_if_needed()
+
         db_path = settings.db_path
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row

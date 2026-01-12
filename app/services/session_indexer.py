@@ -386,6 +386,17 @@ class SessionIndexer:
             "db_path": str(settings.db_path),
         }
 
+    def repair_fts5_if_needed(self) -> bool:
+        """Check and repair FTS5 index if corrupted.
+
+        Returns:
+            True if repair was needed and successful, False if no repair needed
+        """
+        if not self.db:
+            return False
+
+        return self.db.repair_fts5_if_needed()
+
 
 # Global instance
 session_indexer = SessionIndexer()
