@@ -16,7 +16,7 @@
 ## Low Priority / Future Consideration
 
 ### UX
-- [ ] Filter header consistency - Unify styling between Bookmarks and Sessions pages (keep Sessions filter layout, Bookmarks gradient icon)
+- [x] ~~Filter header consistency~~ - Unified bookmarks header with sessions page (compact layout, gradient icon retained)
 - [ ] Event type icons in session cards - small icons showing activity types (edits, bash, etc.)
 - [ ] Improved diff viewer (side-by-side view with synchronized scrolling)
 - [ ] Keyboard shortcuts (j/k navigation, Enter expand/collapse, / to search, Esc close, [/] switch tabs)
