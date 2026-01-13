@@ -66,6 +66,8 @@ export interface SessionFilters {
   search?: string;
   offset?: number;
   limit?: number;
+  order_by?: 'start_time' | 'duration_seconds' | 'message_count';
+  order?: 'asc' | 'desc';
 }
 
 export interface Bookmark {

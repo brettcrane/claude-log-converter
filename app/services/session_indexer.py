@@ -169,6 +169,8 @@ class SessionIndexer:
         search: str | None = None,
         offset: int = 0,
         limit: int = 20,
+        order_by: str = "start_time",
+        order: str = "desc",
     ) -> tuple[list[SessionSummary], int]:
         """Get sessions with optional filtering.
 
@@ -184,7 +186,9 @@ class SessionIndexer:
                     date_to=date_to,
                     search=search,
                     offset=offset,
-                    limit=limit
+                    limit=limit,
+                    order_by=order_by,
+                    order=order,
                 )
             except Exception as e:
                 logger.error(f"SQLite query failed, falling back to file scan: {e}")
@@ -228,11 +232,24 @@ class SessionIndexer:
 
             self._cache[cache_key] = all_sessions
 
-        # Sort by start time descending (newest first)
-        all_sessions.sort(
-            key=lambda s: _get_sort_time(s.start_time),
-            reverse=True
-        )
+        # Sort by specified field
+        reverse = order.lower() == "desc"
+        if order_by == "duration_seconds":
+            all_sessions.sort(
+                key=lambda s: s.duration_seconds or 0,
+                reverse=reverse
+            )
+        elif order_by == "message_count":
+            all_sessions.sort(
+                key=lambda s: s.message_count,
+                reverse=reverse
+            )
+        else:
+            # Default: sort by start_time
+            all_sessions.sort(
+                key=lambda s: _get_sort_time(s.start_time),
+                reverse=reverse
+            )
 
         total = len(all_sessions)
         paginated = all_sessions[offset:offset + limit]

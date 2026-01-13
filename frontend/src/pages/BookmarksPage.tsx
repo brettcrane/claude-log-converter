@@ -1,6 +1,6 @@
 import { useEffect, useState, Fragment } from 'react';
 import { Listbox, Transition } from '@headlessui/react';
-import { Loader2, Search, X, ChevronDown, Check, SlidersHorizontal, Bookmark } from 'lucide-react';
+import { Loader2, Search, X, ChevronDown, Check, SlidersHorizontal, Bookmark, Tag } from 'lucide-react';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { BookmarkList } from '@/components/bookmarks/BookmarkList';
 import { BookmarkDialog } from '@/components/bookmarks/BookmarkDialog';
@@ -16,7 +16,7 @@ const SORT_OPTIONS = [
 ] as const;
 
 const CATEGORIES = [
-  { value: 'all', label: 'All', color: null },
+  { value: 'all', label: 'All Categories', color: null },
   { value: 'general', label: 'General', color: 'bg-gray-500' },
   { value: 'important', label: 'Important', color: 'bg-orange-500' },
   { value: 'reference', label: 'Reference', color: 'bg-green-500' },
@@ -90,6 +90,7 @@ export function BookmarksPage() {
   };
 
   const currentSort = SORT_OPTIONS.find(o => o.value === selectedSort);
+  const currentCategory = CATEGORIES.find(c => c.value === selectedCategory);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
@@ -145,25 +146,56 @@ export function BookmarksPage() {
             {/* Divider */}
             <div className="hidden sm:block h-6 w-px bg-gray-200 dark:bg-gray-700" />
 
-            {/* Category pills */}
-            <div className="flex items-center gap-1.5">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.value}
-                  onClick={() => setSelectedCategory(cat.value)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    selectedCategory === cat.value
-                      ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/20'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  {cat.color && (
-                    <span className={`w-2 h-2 rounded-full ${cat.color}`} />
+            {/* Category dropdown */}
+            <Listbox value={selectedCategory} onChange={setSelectedCategory}>
+              <div className="relative">
+                <Listbox.Button className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors">
+                  <Tag className="w-4 h-4 text-gray-400" />
+                  {currentCategory?.color && (
+                    <span className={`w-2 h-2 rounded-full ${currentCategory.color}`} />
                   )}
-                  {cat.label}
-                </button>
-              ))}
-            </div>
+                  <span>{currentCategory?.label}</span>
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                </Listbox.Button>
+                <Transition
+                  as={Fragment}
+                  enter="transition ease-out duration-100"
+                  enterFrom="opacity-0 scale-95"
+                  enterTo="opacity-100 scale-100"
+                  leave="transition ease-in duration-75"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
+                >
+                  <Listbox.Options className="absolute left-0 mt-2 w-48 origin-top-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl shadow-gray-900/10 dark:shadow-black/30 z-50 overflow-hidden focus:outline-none">
+                    {CATEGORIES.map((cat) => (
+                      <Listbox.Option
+                        key={cat.value}
+                        value={cat.value}
+                        className={({ active }) =>
+                          `flex items-center gap-2 px-4 py-2.5 text-sm cursor-pointer transition-colors ${
+                            active ? 'bg-gray-50 dark:bg-gray-700/50' : ''
+                          }`
+                        }
+                      >
+                        {({ selected }) => (
+                          <>
+                            {cat.color ? (
+                              <span className={`w-2.5 h-2.5 rounded-full ${cat.color}`} />
+                            ) : (
+                              <span className="w-2.5" />
+                            )}
+                            <span className={`flex-1 ${selected ? 'text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'}`}>
+                              {cat.label}
+                            </span>
+                            {selected && <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
+                          </>
+                        )}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </Transition>
+              </div>
+            </Listbox>
 
             {/* Sort dropdown */}
             <div className="ml-auto">

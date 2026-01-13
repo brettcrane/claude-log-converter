@@ -71,14 +71,13 @@ interface TimelineProps {
   events: TimelineEventType[];
   session: SessionDetail;
   selectedTypes: Set<string>;
-  onActiveIndexChange?: (index: number | null) => void;
   onActiveEventTypeChange?: (type: string | null) => void;
 }
 
-export function Timeline({ events, session, selectedTypes, onActiveIndexChange, onActiveEventTypeChange }: TimelineProps) {
+export function Timeline({ events, session, selectedTypes, onActiveEventTypeChange }: TimelineProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Active event tracking for TOC
+  // Active event tracking for header badge
   const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
 
   // Toast state
@@ -110,18 +109,19 @@ export function Timeline({ events, session, selectedTypes, onActiveIndexChange, 
       // Otherwise, use window scroll and calculate relative to container position
       const containerCanScroll = scrollContainer.scrollHeight > scrollContainer.clientHeight;
 
+      // Use a small offset from the top (where header ends) to detect the "current" event
+      // This makes the header badge show what's at the top of visible content
+      const TOP_OFFSET = 80; // pixels from top of scroll area
+
       let targetPosition: number;
 
       if (containerCanScroll && scrollContainer.scrollTop > 0) {
-        // Container is scrolling - use container scroll position
-        const scrollTop = scrollContainer.scrollTop;
-        const clientHeight = scrollContainer.clientHeight;
-        targetPosition = scrollTop + clientHeight / 2;
+        // Container is scrolling - detect event near top of visible area
+        targetPosition = scrollContainer.scrollTop + TOP_OFFSET;
       } else {
-        // Window is scrolling - calculate position relative to container
+        // Window is scrolling - calculate position relative to container top
         const containerRect = scrollContainer.getBoundingClientRect();
-        const viewportMiddle = window.innerHeight / 2;
-        targetPosition = viewportMiddle - containerRect.top;
+        targetPosition = TOP_OFFSET - containerRect.top;
       }
 
       // Find the item that contains this position
@@ -172,13 +172,6 @@ export function Timeline({ events, session, selectedTypes, onActiveIndexChange, 
       window.removeEventListener('resize', updateActiveItem);
     };
   }, [groupedItems, virtualizer]);
-
-  // Notify parent of active index changes
-  useEffect(() => {
-    if (onActiveIndexChange) {
-      onActiveIndexChange(activeItemIndex);
-    }
-  }, [activeItemIndex, onActiveIndexChange]);
 
   // Notify parent of active event type changes
   useEffect(() => {

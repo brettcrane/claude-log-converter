@@ -35,6 +35,8 @@ export async function getSessions(
   if (filters.search) params.set('search', filters.search);
   if (filters.offset !== undefined) params.set('offset', String(filters.offset));
   if (filters.limit !== undefined) params.set('limit', String(filters.limit));
+  if (filters.order_by) params.set('order_by', filters.order_by);
+  if (filters.order) params.set('order', filters.order);
 
   const query = params.toString();
   return fetchJson(`${API_BASE}/sessions${query ? `?${query}` : ''}`);

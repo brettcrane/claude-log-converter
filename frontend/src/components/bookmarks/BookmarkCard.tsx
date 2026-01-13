@@ -109,10 +109,11 @@ export function BookmarkCard({ bookmark, onEdit, onDelete }: BookmarkCardProps) 
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700/50">
-          <div className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 font-mono">
-            <Hash className="w-3 h-3" />
-            <span className="truncate max-w-[100px]" title={bookmark.session_id}>
-              {bookmark.session_id.slice(0, 8)}
+          <div className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 font-mono min-w-0">
+            <Hash className="w-3 h-3 flex-shrink-0" />
+            {/* GOTCHA: Always show full session ID - truncation caused issues in other places */}
+            <span className="truncate" title={bookmark.session_id}>
+              {bookmark.session_id}
             </span>
           </div>
           <button

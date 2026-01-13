@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment } from 'react';
+import { useEffect, useState, Fragment, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Tab, Switch, Menu, Transition } from '@headlessui/react';
 import {
@@ -19,7 +19,6 @@ import {
 import { useSessionStore } from '@/stores/sessionStore';
 import { formatDateTime, formatDuration } from '@/utils/formatters';
 import { Timeline } from '@/components/timeline/Timeline';
-import { TimelineTOC } from '@/components/navigation/TimelineTOC';
 import { getExportUrl } from '@/services/api';
 import type { SessionDetail } from '@/services/types';
 
@@ -33,14 +32,28 @@ const EVENT_TYPES = [
 
 export function SessionDetailPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
-  const { currentSession, loading, error, fetchSession, clearSession } = useSessionStore();
+  // Use individual selectors to maintain stable references for action functions
+  // This prevents infinite re-render loops when updating store state
+  const currentSession = useSessionStore(state => state.currentSession);
+  const loading = useSessionStore(state => state.loading);
+  const error = useSessionStore(state => state.error);
+  const fetchSession = useSessionStore(state => state.fetchSession);
+  const clearSession = useSessionStore(state => state.clearSession);
+  const setActiveEventType = useSessionStore(state => state.setActiveEventType);
   const [includeThinking, setIncludeThinking] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
     new Set(['user', 'assistant', 'tool_use'])
   );
-  const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
-  const [activeEventType, setActiveEventType] = useState<string | null>(null);
-  const [currentTabIndex, setCurrentTabIndex] = useState(0);
+  const lastEventTypeRef = useRef<string | null>(null);
+
+  // Sync activeEventType to store for header display
+  // Use ref to track last value and prevent unnecessary store updates
+  const handleActiveEventTypeChange = useCallback((eventType: string | null) => {
+    if (lastEventTypeRef.current !== eventType) {
+      lastEventTypeRef.current = eventType;
+      setActiveEventType(eventType);
+    }
+  }, [setActiveEventType]);
 
   useEffect(() => {
     if (sessionId) {
@@ -65,17 +78,6 @@ export function SessionDetailPage() {
 
   const selectNone = () => {
     setSelectedTypes(new Set());
-  };
-
-  const handleNavigateToEvent = (eventIndex: number) => {
-    const element = document.querySelector(`[data-index="${eventIndex}"]`);
-    if (element) {
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'nearest',
-      });
-    }
   };
 
   if (loading && !currentSession) {
@@ -115,7 +117,7 @@ export function SessionDetailPage() {
   ];
 
   return (
-    <Tab.Group onChange={setCurrentTabIndex}>
+    <Tab.Group>
       <div className="h-full flex flex-col">
         <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3">
           <div className="flex items-center justify-between mb-3">
@@ -292,8 +294,7 @@ export function SessionDetailPage() {
                 events={currentSession.events}
                 session={currentSession}
                 selectedTypes={selectedTypes}
-                onActiveIndexChange={setActiveItemIndex}
-                onActiveEventTypeChange={setActiveEventType}
+                onActiveEventTypeChange={handleActiveEventTypeChange}
               />
             </Tab.Panel>
             <Tab.Panel className="h-full">
@@ -303,18 +304,6 @@ export function SessionDetailPage() {
               <SummaryTab session={currentSession} />
             </Tab.Panel>
           </Tab.Panels>
-
-          {/* TOC - only show on Timeline tab */}
-          {currentTabIndex === 0 && (
-            <TimelineTOC
-              events={currentSession.events}
-              session={currentSession}
-              selectedTypes={selectedTypes}
-              activeItemIndex={activeItemIndex}
-              activeEventType={activeEventType}
-              onNavigate={handleNavigateToEvent}
-            />
-          )}
         </div>
       </div>
     </Tab.Group>

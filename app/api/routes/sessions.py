@@ -25,6 +25,8 @@ async def list_sessions(
         le=settings.max_page_size,
         description="Items per page"
     ),
+    order_by: str = Query("start_time", description="Sort field (start_time, duration_seconds, message_count)"),
+    order: str = Query("desc", description="Sort order (asc or desc)"),
 ):
     """List sessions with optional filtering and pagination."""
     sessions, total = session_indexer.get_sessions(
@@ -34,6 +36,8 @@ async def list_sessions(
         search=search,
         offset=offset,
         limit=limit,
+        order_by=order_by,
+        order=order,
     )
 
     return PaginatedResponse(

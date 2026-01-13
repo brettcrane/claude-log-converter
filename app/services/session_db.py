@@ -243,6 +243,8 @@ class SessionDatabase:
         search: str | None = None,
         offset: int = 0,
         limit: int = 20,
+        order_by: str = "start_time",
+        order: str = "desc",
     ) -> tuple[list[SessionSummary], int]:
         """Get sessions from SQLite with filtering.
 
@@ -253,6 +255,8 @@ class SessionDatabase:
             search: Full-text search term (uses FTS5)
             offset: Pagination offset
             limit: Pagination limit
+            order_by: Column to sort by (start_time, duration_seconds, message_count)
+            order: Sort order (asc or desc)
 
         Returns:
             Tuple of (session list, total count)
@@ -310,15 +314,25 @@ class SessionDatabase:
 
                 where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
+                # Validate order_by and order to prevent SQL injection
+                allowed_order_by = ["start_time", "duration_seconds", "message_count", "tool_count", "files_modified_count"]
+                allowed_order = ["asc", "desc"]
+                if order_by not in allowed_order_by:
+                    order_by = "start_time"
+                if order.lower() not in allowed_order:
+                    order = "desc"
+
                 # Get total count
                 count_query = f"SELECT COUNT(*) FROM sessions WHERE {where_sql}"
                 total = conn.execute(count_query, params).fetchone()[0]
 
-                # Get paginated results
+                # Get paginated results with dynamic ordering
+                # Handle NULL values: NULLS LAST for desc, NULLS FIRST for asc
+                nulls_handling = "NULLS LAST" if order.lower() == "desc" else "NULLS FIRST"
                 query = f"""
                     SELECT * FROM sessions
                     WHERE {where_sql}
-                    ORDER BY start_time DESC
+                    ORDER BY {order_by} {order.upper()} {nulls_handling}
                     LIMIT ? OFFSET ?
                 """
                 params.extend([limit, offset])

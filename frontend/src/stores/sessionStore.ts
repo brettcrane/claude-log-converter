@@ -5,6 +5,7 @@ import { getSessions, getSession, getProjects, clearSessionCache } from '@/servi
 interface SessionState {
   sessions: SessionSummary[];
   currentSession: SessionDetail | null;
+  activeEventType: string | null;
   projects: Project[];
   total: number;
   hasMore: boolean;
@@ -20,6 +21,7 @@ interface SessionState {
   fetchSession: (sessionId: string, includeThinking?: boolean) => Promise<SessionDetail | null>;
   fetchProjects: () => Promise<void>;
   clearSession: () => void;
+  setActiveEventType: (eventType: string | null) => void;
 }
 
 const DEFAULT_FILTERS: SessionFilters = {
@@ -30,6 +32,7 @@ const DEFAULT_FILTERS: SessionFilters = {
 export const useSessionStore = create<SessionState>((set, get) => ({
   sessions: [],
   currentSession: null,
+  activeEventType: null,
   projects: [],
   total: 0,
   hasMore: false,
@@ -136,6 +139,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   clearSession: () => {
-    set({ currentSession: null });
+    set({ currentSession: null, activeEventType: null });
+  },
+
+  setActiveEventType: (eventType) => {
+    set({ activeEventType: eventType });
   },
 }));
