@@ -2,6 +2,9 @@
 
 ## High Priority
 
+### Architecture / Safety
+- [ ] **Audit refresh button safety** - The "Refresh" button in the sessions list may be using legacy cache-clearing logic that could corrupt the SQLite database. Verify it's still needed with the new SQLite backend, and if so, ensure it uses safe sync methods (not destructive cache clearing).
+
 ### UX & Timeline Improvements
 - [x] ~~Add syntax highlighting to code blocks in timeline~~ (completed - using prism-react-renderer)
 - [x] ~~In-session search (Ctrl+F)~~ (completed then removed - had issues with virtual scroll, browser Ctrl+F works better)
@@ -17,6 +20,7 @@
 
 ### UX
 - [x] ~~Filter header consistency~~ - Unified bookmarks header with sessions page (compact layout, gradient icon retained)
+- [ ] Sessions page breadcrumbs - Breadcrumbs only appear when filters are applied, making navigation inconsistent. Either make breadcrumbs permanent or integrate filter state into the existing "Sessions" header (move session count elsewhere if needed).
 - [ ] Bookmark jump scroll positioning - Current implementation doesn't perfectly handle variable header heights when jumping to bookmarked events. Need to account for both the session detail header and potential floating/sticky headers at different scroll positions.
 - [ ] Event type icons in session cards - small icons showing activity types (edits, bash, etc.)
 - [ ] Improved diff viewer (side-by-side view with synchronized scrolling)
