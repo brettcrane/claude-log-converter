@@ -95,34 +95,32 @@ export function BookmarksPage() {
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        {/* Title row */}
-        <div className="px-6 pt-5 pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/25">
-                <Bookmark className="w-5 h-5 text-white" />
+        {/* Title and filters */}
+        <div className="px-6 pt-4 pb-4">
+          {/* Title row */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-sm">
+                <Bookmark className="w-4 h-4 text-white" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                  Bookmarks
-                </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {bookmarkStore.loading ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Loading...
-                    </span>
-                  ) : (
-                    <span>{bookmarkStore.total} saved {bookmarkStore.total === 1 ? 'moment' : 'moments'}</span>
-                  )}
-                </p>
-              </div>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+                Bookmarks
+              </h1>
+              {!bookmarkStore.loading && (
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {bookmarkStore.total} {bookmarkStore.total === 1 ? 'moment' : 'moments'}
+                </span>
+              )}
+              {bookmarkStore.loading && (
+                <span className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Loading...
+                </span>
+              )}
             </div>
           </div>
-        </div>
 
-        {/* Filters row */}
-        <div className="px-6 pb-4">
+          {/* Filters row */}
           <div className="flex flex-wrap items-center gap-3">
             {/* Search */}
             <div className="relative flex-1 min-w-[200px] max-w-sm">
