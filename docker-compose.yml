@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount your Claude projects directory (read-only)
+      - ~/.claude/projects:/data/projects:ro
+      # Persist database
+      - claude-log-data:/data/db
+    environment:
+      - CLAUDE_LOG_CLAUDE_PROJECTS_DIR=/data/projects
+      - CLAUDE_LOG_DB_PATH=/data/db/sessions.db
+
+volumes:
+  claude-log-data:
