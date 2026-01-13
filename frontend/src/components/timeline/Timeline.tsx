@@ -71,14 +71,20 @@ interface TimelineProps {
   events: TimelineEventType[];
   session: SessionDetail;
   selectedTypes: Set<string>;
+  scrollToEventId?: string;
   onActiveEventTypeChange?: (type: string | null) => void;
+  onTargetEventFiltered?: (filtered: boolean) => void;
 }
 
-export function Timeline({ events, session, selectedTypes, onActiveEventTypeChange }: TimelineProps) {
+export function Timeline({ events, session, selectedTypes, scrollToEventId, onActiveEventTypeChange, onTargetEventFiltered }: TimelineProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Active event tracking for header badge
   const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
+
+  // Highlighted event for bookmark jumps (clears after animation)
+  const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null);
+  const scrolledRef = useRef(false);
 
   // Toast state
   const [showToast, setShowToast] = useState(false);
@@ -90,12 +96,182 @@ export function Timeline({ events, session, selectedTypes, onActiveEventTypeChan
   // Group consecutive tool events
   const groupedItems = useMemo(() => groupEvents(filteredEvents), [filteredEvents]);
 
+  // Check if target event exists in unfiltered events (to detect if it's filtered out)
+  const targetEventInAllEvents = useMemo(() => {
+    if (!scrollToEventId) return null;
+    return events.find(e => e.id === scrollToEventId) || null;
+  }, [scrollToEventId, events]);
+
+  // Check if target event is in filtered events
+  const targetEventInFilteredEvents = useMemo(() => {
+    if (!scrollToEventId) return null;
+    return filteredEvents.find(e => e.id === scrollToEventId) || null;
+  }, [scrollToEventId, filteredEvents]);
+
+  // Find the grouped item index containing the target event
+  const findGroupedItemIndex = useCallback((eventId: string): number => {
+    return groupedItems.findIndex(item => {
+      if (item.type === 'single') {
+        return item.event.id === eventId;
+      } else {
+        return item.events.some(e => e.id === eventId);
+      }
+    });
+  }, [groupedItems]);
+
   const virtualizer = useVirtualizer({
     count: groupedItems.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 150,
     overscan: 5,
   });
+
+  // Handle scroll-to-event when scrollToEventId is provided
+  useEffect(() => {
+    console.log('[Timeline scroll] scrollToEventId:', scrollToEventId);
+    console.log('[Timeline scroll] events count:', events.length);
+    console.log('[Timeline scroll] event IDs sample:', events.slice(0, 5).map(e => e.id));
+
+    if (!scrollToEventId) {
+      scrolledRef.current = false;
+      return;
+    }
+
+    console.log('[Timeline scroll] targetEventInAllEvents:', targetEventInAllEvents);
+    console.log('[Timeline scroll] targetEventInFilteredEvents:', targetEventInFilteredEvents);
+
+    // Notify parent if target event is filtered out
+    const isFiltered = targetEventInAllEvents && !targetEventInFilteredEvents;
+    console.log('[Timeline scroll] isFiltered:', isFiltered);
+
+    if (onTargetEventFiltered) {
+      onTargetEventFiltered(!!isFiltered);
+    }
+
+    // If event is filtered out, don't scroll
+    if (isFiltered || !targetEventInFilteredEvents) {
+      console.log('[Timeline scroll] Skipping - event filtered or not found');
+      return;
+    }
+
+    // Find the grouped item containing this event
+    const targetIndex = findGroupedItemIndex(scrollToEventId);
+    console.log('[Timeline scroll] targetIndex:', targetIndex);
+
+    if (targetIndex === -1) {
+      console.log('[Timeline scroll] Event not found in grouped items');
+      return;
+    }
+
+    // Only scroll once per scrollToEventId
+    if (scrolledRef.current) {
+      console.log('[Timeline scroll] Already scrolled, skipping');
+      return;
+    }
+    scrolledRef.current = true;
+
+    console.log('[Timeline scroll] Scrolling to index:', targetIndex);
+
+    // Set highlight
+    setHighlightedEventId(scrollToEventId);
+
+    // Smart scroll that accounts for variable header heights
+    const performScroll = () => {
+      const targetElement = document.querySelector(`[data-event-id="${scrollToEventId}"]`);
+
+      if (!targetElement) {
+        console.log('[Timeline scroll] Element not found, using virtualizer');
+        virtualizer.scrollToIndex(targetIndex, { align: 'start', behavior: 'auto' });
+
+        // Try again after virtualizer renders
+        setTimeout(() => {
+          const element = document.querySelector(`[data-event-id="${scrollToEventId}"]`);
+          if (element) {
+            scrollElementIntoPosition(element as HTMLElement);
+          }
+        }, 150);
+        return;
+      }
+
+      scrollElementIntoPosition(targetElement as HTMLElement);
+    };
+
+    // Scroll element to proper position below headers
+    const scrollElementIntoPosition = (element: HTMLElement) => {
+      // Get element's absolute position in document
+      const rect = element.getBoundingClientRect();
+      const absoluteTop = rect.top + window.scrollY;
+
+      // Find the session detail header (the flex-shrink-0 container with border-b)
+      // This header contains project info, metadata, tabs, and filters
+      const sessionHeader = document.querySelector('.flex-shrink-0.border-b.border-gray-200');
+
+      let headerBottom = 200; // Safe default
+
+      if (sessionHeader) {
+        const headerRect = sessionHeader.getBoundingClientRect();
+        // If header is visible (not scrolled past), use its bottom
+        // Add the current scroll position to get absolute position
+        if (headerRect.top >= -headerRect.height) {
+          headerBottom = headerRect.bottom;
+        }
+      }
+
+      // Also check for any sticky/fixed app-level headers
+      const appHeader = document.querySelector('header');
+      if (appHeader) {
+        const appHeaderRect = appHeader.getBoundingClientRect();
+        const style = window.getComputedStyle(appHeader);
+        if (style.position === 'fixed' || style.position === 'sticky') {
+          headerBottom = Math.max(headerBottom, appHeaderRect.bottom);
+        }
+      }
+
+      // Calculate where to scroll - position element just below all headers
+      const padding = 12; // Small padding below header
+      const targetScrollY = absoluteTop - headerBottom - padding;
+
+      console.log('[Timeline scroll] Positioning:', {
+        absoluteTop,
+        headerBottom,
+        targetScrollY: Math.max(0, targetScrollY),
+      });
+
+      window.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'auto' });
+
+      // Double-check after scroll settles - the header might have changed
+      requestAnimationFrame(() => {
+        const newRect = element.getBoundingClientRect();
+        const currentHeaderBottom = sessionHeader
+          ? sessionHeader.getBoundingClientRect().bottom
+          : 200;
+
+        // If element is still under header, do a fine-tune adjustment
+        if (newRect.top < currentHeaderBottom + padding) {
+          const adjustment = (currentHeaderBottom + padding) - newRect.top;
+          window.scrollBy({ top: -adjustment, behavior: 'auto' });
+          console.log('[Timeline scroll] Fine-tune adjustment:', adjustment);
+        }
+      });
+    };
+
+    // Clear highlight after animation (2.5s)
+    setTimeout(() => {
+      setHighlightedEventId(null);
+    }, 2500);
+
+    // Give the component time to mount and render
+    setTimeout(() => {
+      performScroll();
+    }, 100);
+  }, [scrollToEventId, targetEventInAllEvents, targetEventInFilteredEvents, findGroupedItemIndex, virtualizer, onTargetEventFiltered]);
+
+  // Re-notify parent when filters change (target might become filtered/unfiltered)
+  useEffect(() => {
+    if (!scrollToEventId || !onTargetEventFiltered) return;
+    const isFiltered = targetEventInAllEvents && !targetEventInFilteredEvents;
+    onTargetEventFiltered(!!isFiltered);
+  }, [scrollToEventId, targetEventInAllEvents, targetEventInFilteredEvents, onTargetEventFiltered]);
 
   // Track active event based on scroll position
   // Uses both container and window scroll to handle different layout scenarios
@@ -230,6 +406,7 @@ export function Timeline({ events, session, selectedTypes, onActiveEventTypeChan
                       event={item.event}
                       session={session}
                       isActive={virtualItem.index === activeItemIndex}
+                      isHighlighted={item.event.id === highlightedEventId}
                       onCopySuccess={handleCopySuccess}
                       onCopyError={handleCopyError}
                     />
@@ -241,6 +418,7 @@ export function Timeline({ events, session, selectedTypes, onActiveEventTypeChan
                     groupType={item.groupType}
                     toolName={item.toolName}
                     isActive={virtualItem.index === activeItemIndex}
+                    highlightedEventId={highlightedEventId || undefined}
                     onCopySuccess={handleCopySuccess}
                     onCopyError={handleCopyError}
                   />

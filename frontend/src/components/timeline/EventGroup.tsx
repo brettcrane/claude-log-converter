@@ -9,6 +9,7 @@ interface EventGroupProps {
   groupType: 'tool_use' | 'tool_result';
   toolName?: string;
   isActive?: boolean;
+  highlightedEventId?: string;
   onCopySuccess?: () => void;
   onCopyError?: () => void;
 }
@@ -77,10 +78,15 @@ function getFilePaths(events: TimelineEventType[]): string[] {
   return paths;
 }
 
-export function EventGroup({ events, session, groupType, toolName, isActive = false, onCopySuccess, onCopyError }: EventGroupProps) {
+export function EventGroup({ events, session, groupType, toolName, isActive = false, highlightedEventId, onCopySuccess, onCopyError }: EventGroupProps) {
   const Icon = toolName ? getToolIcon(toolName) : Wrench;
   const summary = getGroupSummary(events, groupType, toolName);
   const filePaths = groupType === 'tool_use' ? getFilePaths(events) : [];
+
+  // Check if this group contains the highlighted event - if so, auto-expand
+  const containsHighlightedEvent = highlightedEventId
+    ? events.some(e => e.id === highlightedEventId)
+    : false;
 
   return (
     <div className="px-4">
@@ -89,7 +95,7 @@ export function EventGroup({ events, session, groupType, toolName, isActive = fa
           isActive ? 'border-l-8 bg-gradient-to-r from-gray-50/50 to-transparent dark:from-gray-800/30' : ''
         }`}
       >
-        <Disclosure>
+        <Disclosure defaultOpen={containsHighlightedEvent}>
           {({ open }) => (
             <>
               <Disclosure.Button className="w-full flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded px-2 py-1 -ml-2 text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
@@ -126,6 +132,7 @@ export function EventGroup({ events, session, groupType, toolName, isActive = fa
                       <TimelineEvent
                         event={event}
                         session={session}
+                        isHighlighted={event.id === highlightedEventId}
                         onCopySuccess={onCopySuccess}
                         onCopyError={onCopyError}
                       />

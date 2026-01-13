@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Edit2, Trash2, GitBranch, Clock, Hash } from 'lucide-react';
 import type { Bookmark } from '@/services/types';
 import { BookmarkBadge } from './BookmarkBadge';
@@ -29,13 +28,13 @@ const EVENT_TYPE_STYLES: Record<string, { bg: string; text: string; border: stri
 };
 
 export function BookmarkCard({ bookmark, onEdit, onDelete }: BookmarkCardProps) {
-  const navigate = useNavigate();
   const truncatedNote = truncateNote(bookmark.note);
   const eventType = bookmark.event_type || 'user';
   const eventStyle = EVENT_TYPE_STYLES[eventType] || EVENT_TYPE_STYLES.user;
 
   const handleJumpToEvent = () => {
-    navigate(`/session/${bookmark.session_id}#event-${bookmark.event_id}`);
+    // Use window.location to ensure hash is preserved
+    window.location.href = `/session/${bookmark.session_id}#event-${bookmark.event_id}`;
   };
 
   return (

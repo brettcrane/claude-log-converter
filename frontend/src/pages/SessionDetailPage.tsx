@@ -1,5 +1,5 @@
 import { useEffect, useState, Fragment, useCallback, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { Tab, Switch, Menu, Transition } from '@headlessui/react';
 import {
   ArrowLeft,
@@ -15,8 +15,11 @@ import {
   ListTodo,
   Filter,
   ChevronDown,
+  Bookmark,
+  Eye,
 } from 'lucide-react';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { formatDateTime, formatDuration } from '@/utils/formatters';
 import { Timeline } from '@/components/timeline/Timeline';
 import { getExportUrl } from '@/services/api';
@@ -32,6 +35,8 @@ const EVENT_TYPES = [
 
 export function SessionDetailPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
+  const location = useLocation();
+
   // Use individual selectors to maintain stable references for action functions
   // This prevents infinite re-render loops when updating store state
   const currentSession = useSessionStore(state => state.currentSession);
@@ -46,6 +51,14 @@ export function SessionDetailPage() {
   );
   const lastEventTypeRef = useRef<string | null>(null);
 
+  // Parse event ID from URL hash (e.g., #event-abc123)
+  const scrollToEventId = location.hash.startsWith('#event-')
+    ? location.hash.slice(7) // Remove '#event-' prefix
+    : undefined;
+
+  // Track if the target event is currently filtered out
+  const [targetEventFiltered, setTargetEventFiltered] = useState(false);
+
   // Sync activeEventType to store for header display
   // Use ref to track last value and prevent unnecessary store updates
   const handleActiveEventTypeChange = useCallback((eventType: string | null) => {
@@ -55,12 +68,17 @@ export function SessionDetailPage() {
     }
   }, [setActiveEventType]);
 
+  // Fetch bookmarks for this session
+  const fetchSessionBookmarks = useBookmarkStore(state => state.fetchSessionBookmarks);
+
   useEffect(() => {
     if (sessionId) {
       fetchSession(sessionId, includeThinking);
+      // Fetch bookmarks for this session so badges display
+      fetchSessionBookmarks(sessionId);
     }
     return () => clearSession();
-  }, [sessionId, includeThinking, fetchSession, clearSession]);
+  }, [sessionId, includeThinking, fetchSession, clearSession, fetchSessionBookmarks]);
 
   const toggleType = (type: string) => {
     const newSet = new Set(selectedTypes);
@@ -79,6 +97,22 @@ export function SessionDetailPage() {
   const selectNone = () => {
     setSelectedTypes(new Set());
   };
+
+  // Show the bookmarked event by enabling its type in the filter
+  const showBookmarkedEvent = useCallback(() => {
+    if (!scrollToEventId || !currentSession) return;
+
+    // Find the bookmarked event to get its type
+    const targetEvent = currentSession.events.find(e => e.id === scrollToEventId);
+    if (!targetEvent) return;
+
+    // Add the event type to the filter
+    setSelectedTypes(prev => {
+      const newSet = new Set(prev);
+      newSet.add(targetEvent.type);
+      return newSet;
+    });
+  }, [scrollToEventId, currentSession]);
 
   if (loading && !currentSession) {
     return (
@@ -227,9 +261,26 @@ export function SessionDetailPage() {
             </Tab.List>
 
             <div className="flex items-center gap-3 pb-1">
+              {/* Event counter - clearer format */}
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                {currentSession.events.filter((e) => selectedTypes.has(e.type)).length} of {currentSession.events.length} events
+                {currentSession.events.filter((e) => selectedTypes.has(e.type)).length === currentSession.events.length ? (
+                  <>{currentSession.events.length} events</>
+                ) : (
+                  <>{currentSession.events.filter((e) => selectedTypes.has(e.type)).length} of {currentSession.events.length} events</>
+                )}
               </span>
+
+              {/* Bookmarked event hidden indicator */}
+              {scrollToEventId && targetEventFiltered && (
+                <button
+                  onClick={showBookmarkedEvent}
+                  className="flex items-center gap-1.5 px-2 py-1 text-xs bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
+                >
+                  <Bookmark className="w-3 h-3 fill-current" />
+                  <span>Bookmark hidden</span>
+                  <Eye className="w-3 h-3" />
+                </button>
+              )}
 
               <Menu as="div" className="relative">
                 <Menu.Button className="flex items-center gap-1.5 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -294,7 +345,9 @@ export function SessionDetailPage() {
                 events={currentSession.events}
                 session={currentSession}
                 selectedTypes={selectedTypes}
+                scrollToEventId={scrollToEventId}
                 onActiveEventTypeChange={handleActiveEventTypeChange}
+                onTargetEventFiltered={setTargetEventFiltered}
               />
             </Tab.Panel>
             <Tab.Panel className="h-full">

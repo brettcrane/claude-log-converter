@@ -14,11 +14,12 @@ interface TimelineEventProps {
   event: TimelineEventType;
   session: SessionDetail;
   isActive?: boolean;
+  isHighlighted?: boolean;
   onCopySuccess?: () => void;
   onCopyError?: () => void;
 }
 
-export function TimelineEvent({ event, session, isActive = false, onCopySuccess, onCopyError }: TimelineEventProps) {
+export function TimelineEvent({ event, session, isActive = false, isHighlighted = false, onCopySuccess, onCopyError }: TimelineEventProps) {
   const [copying, setCopying] = useState(false);
   const bookmarkStore = useBookmarkStore();
   const bookmark = bookmarkStore.bookmarksByEventId.get(`${session.session_id}:${event.id}`);
@@ -195,11 +196,18 @@ export function TimelineEvent({ event, session, isActive = false, onCopySuccess,
     );
   };
 
+  // Highlight animation for bookmark jumps
+  const highlightStyles = isHighlighted ? {
+    animation: 'bookmark-highlight 2.5s ease-out forwards',
+  } : {};
+
   return (
     <div
-      className={`group border-l-4 ${getEventColor()} pl-4 py-3 transition-all duration-200 ${
+      data-event-id={event.id}
+      className={`group border-l-4 ${getEventColor()} pl-4 py-3 transition-all duration-200 rounded-r-lg ${
         isActive ? 'border-l-8 bg-gradient-to-r from-gray-50/50 to-transparent dark:from-gray-800/30' : ''
-      }`}
+      } ${isHighlighted ? 'ring-2 ring-amber-400/60 dark:ring-amber-500/50 bg-amber-50/30 dark:bg-amber-900/10' : ''}`}
+      style={highlightStyles}
     >
       <div className="flex items-center gap-2 mb-2">
         {getEventIcon()}

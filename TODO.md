@@ -17,6 +17,7 @@
 
 ### UX
 - [x] ~~Filter header consistency~~ - Unified bookmarks header with sessions page (compact layout, gradient icon retained)
+- [ ] Bookmark jump scroll positioning - Current implementation doesn't perfectly handle variable header heights when jumping to bookmarked events. Need to account for both the session detail header and potential floating/sticky headers at different scroll positions.
 - [ ] Event type icons in session cards - small icons showing activity types (edits, bash, etc.)
 - [ ] Improved diff viewer (side-by-side view with synchronized scrolling)
 - [ ] Keyboard shortcuts (j/k navigation, Enter expand/collapse, / to search, Esc close, [/] switch tabs)
@@ -71,6 +72,9 @@ When Claude creates a PR for a feature:
 ---
 
 ## Completed
+
+### 2026-01-13
+- [x] **Bookmark jump-to-event** - Clicking a bookmark now navigates to the session and scrolls to the bookmarked event with a golden highlight animation. Features: URL hash navigation (#event-{id}), auto-expand of collapsed groups containing bookmarked events, "Bookmark hidden" indicator when filters hide the target event, bookmark badges visible in timeline. Scroll positioning partially works but has edge cases with variable header heights (see TODO).
 
 ### 2026-01-11
 - [x] **Session bookmarks/annotations** - Bookmark important moments in sessions with categories (Important, Reference, Bug, Question, General), notes, and quick jump-to-event navigation. SQLite backend with full CRUD API, dedicated bookmarks page with filtering and sorting (by bookmark date or event time), bookmark badges in timeline, integrated with virtual scrolling for performance
