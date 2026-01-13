@@ -1,37 +1,31 @@
-import { useEffect, useState, Fragment, useCallback, useRef } from 'react';
+import { useEffect, useState, Fragment, useCallback, useRef, useMemo } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
-import { Tab, Switch, Menu, Transition } from '@headlessui/react';
+import { Tab, Switch } from '@headlessui/react';
 import {
   ArrowLeft,
   Clock,
   GitBranch,
   FolderOpen,
   FileText,
-  Wrench,
   Download,
   Loader2,
   AlertCircle,
   CheckCircle,
   ListTodo,
-  Filter,
-  ChevronDown,
   Bookmark,
   Eye,
+  HelpCircle,
+  MessageSquare,
+  Wrench,
+  Activity,
 } from 'lucide-react';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { formatDateTime, formatDuration } from '@/utils/formatters';
 import { Timeline } from '@/components/timeline/Timeline';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { getExportUrl } from '@/services/api';
 import type { SessionDetail } from '@/services/types';
-
-const EVENT_TYPES = [
-  { value: 'user', label: 'User', color: 'bg-blue-500' },
-  { value: 'assistant', label: 'Assistant', color: 'bg-purple-500' },
-  { value: 'tool_use', label: 'Tool Use', color: 'bg-gray-500' },
-  { value: 'tool_result', label: 'Tool Result', color: 'bg-gray-400' },
-  { value: 'thinking', label: 'Thinking', color: 'bg-gray-300' },
-];
 
 export function SessionDetailPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -45,10 +39,24 @@ export function SessionDetailPage() {
   const fetchSession = useSessionStore(state => state.fetchSession);
   const clearSession = useSessionStore(state => state.clearSession);
   const setActiveEventType = useSessionStore(state => state.setActiveEventType);
-  const [includeThinking, setIncludeThinking] = useState(false);
-  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
-    new Set(['user', 'assistant', 'tool_use'])
-  );
+
+  // Simple toggles for what to show (User + Assistant always shown)
+  const [showTools, setShowTools] = useState(false);
+  const [showThinking, setShowThinking] = useState(false);
+
+  // Compute selected types from toggles
+  const selectedTypes = useMemo(() => {
+    const types = new Set(['user', 'assistant']);
+    if (showTools) {
+      types.add('tool_use');
+      types.add('tool_result');
+    }
+    if (showThinking) {
+      types.add('thinking');
+    }
+    return types;
+  }, [showTools, showThinking]);
+
   const lastEventTypeRef = useRef<string | null>(null);
 
   // Parse event ID from URL hash (e.g., #event-abc123)
@@ -73,32 +81,14 @@ export function SessionDetailPage() {
 
   useEffect(() => {
     if (sessionId) {
-      fetchSession(sessionId, includeThinking);
+      fetchSession(sessionId, showThinking);
       // Fetch bookmarks for this session so badges display
       fetchSessionBookmarks(sessionId);
     }
     return () => clearSession();
-  }, [sessionId, includeThinking, fetchSession, clearSession, fetchSessionBookmarks]);
+  }, [sessionId, showThinking, fetchSession, clearSession, fetchSessionBookmarks]);
 
-  const toggleType = (type: string) => {
-    const newSet = new Set(selectedTypes);
-    if (newSet.has(type)) {
-      newSet.delete(type);
-    } else {
-      newSet.add(type);
-    }
-    setSelectedTypes(newSet);
-  };
-
-  const selectAll = () => {
-    setSelectedTypes(new Set(EVENT_TYPES.map((t) => t.value)));
-  };
-
-  const selectNone = () => {
-    setSelectedTypes(new Set());
-  };
-
-  // Show the bookmarked event by enabling its type in the filter
+  // Show the bookmarked event by enabling the appropriate toggle
   const showBookmarkedEvent = useCallback(() => {
     if (!scrollToEventId || !currentSession) return;
 
@@ -106,12 +96,13 @@ export function SessionDetailPage() {
     const targetEvent = currentSession.events.find(e => e.id === scrollToEventId);
     if (!targetEvent) return;
 
-    // Add the event type to the filter
-    setSelectedTypes(prev => {
-      const newSet = new Set(prev);
-      newSet.add(targetEvent.type);
-      return newSet;
-    });
+    // Enable the appropriate toggle based on event type
+    if (targetEvent.type === 'tool_use' || targetEvent.type === 'tool_result') {
+      setShowTools(true);
+    } else if (targetEvent.type === 'thinking') {
+      setShowThinking(true);
+    }
+    // User and Assistant are always shown, no action needed
   }, [scrollToEventId, currentSession]);
 
   if (loading && !currentSession) {
@@ -173,29 +164,67 @@ export function SessionDetailPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {/* Tools toggle */}
               <Switch.Group>
                 <div className="flex items-center gap-1.5">
                   <Switch
-                    checked={includeThinking}
-                    onChange={setIncludeThinking}
+                    checked={showTools}
+                    onChange={setShowTools}
                     className={`${
-                      includeThinking ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                      showTools ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
                     } relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1`}
                   >
                     <span
                       className={`${
-                        includeThinking ? 'translate-x-5' : 'translate-x-1'
+                        showTools ? 'translate-x-5' : 'translate-x-1'
+                      } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                    />
+                  </Switch>
+                  <Switch.Label className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                    Tools
+                  </Switch.Label>
+                  <Tooltip
+                    content="Show tool calls and their results"
+                    position="bottom"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-help" />
+                  </Tooltip>
+                </div>
+              </Switch.Group>
+
+              {/* Thinking toggle */}
+              <Switch.Group>
+                <div className="flex items-center gap-1.5">
+                  <Switch
+                    checked={showThinking}
+                    onChange={setShowThinking}
+                    className={`${
+                      showThinking ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                    } relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1`}
+                  >
+                    <span
+                      className={`${
+                        showThinking ? 'translate-x-5' : 'translate-x-1'
                       } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
                     />
                   </Switch>
                   <Switch.Label className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
                     Thinking
                   </Switch.Label>
+                  <Tooltip
+                    content="Show Claude's internal reasoning blocks"
+                    position="bottom"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-help" />
+                  </Tooltip>
                 </div>
               </Switch.Group>
+
+              <div className="w-px h-4 bg-gray-300 dark:bg-gray-600" />
+
               <a
-                href={getExportUrl(currentSession.session_id, 'markdown', { includeThinking })}
+                href={getExportUrl(currentSession.session_id, 'markdown', { includeThinking: showThinking })}
                 download
                 className="flex items-center gap-1.5 px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
               >
@@ -203,40 +232,13 @@ export function SessionDetailPage() {
                 MD
               </a>
               <a
-                href={getExportUrl(currentSession.session_id, 'json', { includeThinking })}
+                href={getExportUrl(currentSession.session_id, 'json', { includeThinking: showThinking })}
                 download
                 className="flex items-center gap-1.5 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 <Download className="w-3 h-3" />
                 JSON
               </a>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3 text-xs text-gray-600 dark:text-gray-400 mb-3">
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {formatDateTime(currentSession.start_time)}
-            </div>
-            {currentSession.duration_seconds ? (
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {formatDuration(currentSession.duration_seconds)}
-              </div>
-            ) : null}
-            {currentSession.git_branch ? (
-              <div className="flex items-center gap-1">
-                <GitBranch className="w-3 h-3" />
-                {currentSession.git_branch}
-              </div>
-            ) : null}
-            <div className="flex items-center gap-1">
-              <FileText className="w-3 h-3" />
-              {currentSession.events.filter((e) => ['user', 'assistant'].includes(e.type)).length} messages
-            </div>
-            <div className="flex items-center gap-1">
-              <Wrench className="w-3 h-3" />
-              {currentSession.events.filter((e) => e.type === 'tool_use').length} tools
             </div>
           </div>
 
@@ -260,14 +262,49 @@ export function SessionDetailPage() {
               ))}
             </Tab.List>
 
-            <div className="flex items-center gap-3 pb-1">
-              {/* Event counter - clearer format */}
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {currentSession.events.filter((e) => selectedTypes.has(e.type)).length === currentSession.events.length ? (
-                  <>{currentSession.events.length} events</>
-                ) : (
-                  <>{currentSession.events.filter((e) => selectedTypes.has(e.type)).length} of {currentSession.events.length} events</>
-                )}
+            <div className="flex items-center gap-2 pb-1 text-[11px] text-gray-500 dark:text-gray-400">
+              {/* Session metadata - compact inline */}
+              <div className="hidden sm:flex items-center gap-2">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {formatDateTime(currentSession.start_time)}
+                </span>
+                {currentSession.duration_seconds ? (
+                  <>
+                    <span className="text-gray-300 dark:text-gray-600">·</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatDuration(currentSession.duration_seconds)}
+                    </span>
+                  </>
+                ) : null}
+                {currentSession.git_branch ? (
+                  <>
+                    <span className="text-gray-300 dark:text-gray-600">·</span>
+                    <span className="flex items-center gap-1">
+                      <GitBranch className="w-3 h-3" />
+                      {currentSession.git_branch}
+                    </span>
+                  </>
+                ) : null}
+                <span className="text-gray-300 dark:text-gray-600">·</span>
+                <span className="flex items-center gap-1">
+                  <MessageSquare className="w-3 h-3" />
+                  {currentSession.events.filter((e) => ['user', 'assistant'].includes(e.type)).length} msgs
+                </span>
+                <span className="text-gray-300 dark:text-gray-600">·</span>
+                <span className="flex items-center gap-1">
+                  <Wrench className="w-3 h-3" />
+                  {currentSession.events.filter((e) => e.type === 'tool_use').length} tools
+                </span>
+              </div>
+
+              <span className="text-gray-300 dark:text-gray-600 hidden sm:inline">|</span>
+
+              {/* Event counter */}
+              <span className="flex items-center gap-1">
+                <Activity className="w-3 h-3" />
+                {currentSession.events.filter((e) => selectedTypes.has(e.type)).length} events
               </span>
 
               {/* Bookmarked event hidden indicator */}
@@ -281,59 +318,6 @@ export function SessionDetailPage() {
                   <Eye className="w-3 h-3" />
                 </button>
               )}
-
-              <Menu as="div" className="relative">
-                <Menu.Button className="flex items-center gap-1.5 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <Filter className="w-3 h-3" />
-                  Filter
-                  <ChevronDown className="w-3 h-3" />
-                </Menu.Button>
-
-                <Transition
-                  as={Fragment}
-                  enter="transition ease-out duration-100"
-                  enterFrom="transform opacity-0 scale-95"
-                  enterTo="transform opacity-100 scale-100"
-                  leave="transition ease-in duration-75"
-                  leaveFrom="transform opacity-100 scale-100"
-                  leaveTo="transform opacity-0 scale-95"
-                >
-                  <Menu.Items className="absolute right-0 mt-2 w-44 origin-top-right bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg focus:outline-none z-50">
-                    <div className="p-2 border-b border-gray-200 dark:border-gray-700 flex gap-2">
-                      <button
-                        onClick={selectAll}
-                        className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-                      >
-                        All
-                      </button>
-                      <button
-                        onClick={selectNone}
-                        className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-                      >
-                        None
-                      </button>
-                    </div>
-                    <div className="p-2 space-y-1">
-                      {EVENT_TYPES.map((type) => (
-                        <Menu.Item key={type.value}>
-                          {() => (
-                            <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={selectedTypes.has(type.value)}
-                                onChange={() => toggleType(type.value)}
-                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                              />
-                              <span className={`w-2 h-2 rounded-full ${type.color}`} />
-                              <span className="text-sm text-gray-900 dark:text-white">{type.label}</span>
-                            </label>
-                          )}
-                        </Menu.Item>
-                      ))}
-                    </div>
-                  </Menu.Items>
-                </Transition>
-              </Menu>
             </div>
           </div>
         </div>

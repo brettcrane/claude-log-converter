@@ -5,6 +5,8 @@ Web application for browsing and analyzing Claude Code session logs. Converts `.
 
 **For pending work items, see [TODO.md](TODO.md)**
 
+**For common issues and gotchas, see [.claude/skills/gotchas.md](.claude/skills/gotchas.md)** - includes venv activation, ruff linting, port conflicts, and scroll detection fixes. **If you encounter a recurring error pattern, add it to this file.**
+
 ## Tech Stack
 - **Backend**: Python 3.12, FastAPI, Pydantic
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
