@@ -1,0 +1,13 @@
+.venv/
+.git/
+__pycache__/
+*.pyc
+node_modules/
+.env
+*.db
+archive/
+docs/archive/
+*.md
+!README.md
+static/
+.claude/
