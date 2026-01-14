@@ -21,28 +21,18 @@ export function Breadcrumbs() {
     return null;
   }
 
-  // Home/Sessions - always first
+  // Home/Sessions page - has its own integrated header with filters/project badge
   if (location.pathname === '/') {
-    // On home page, show nothing (the page has its own header)
-    if (!filters.project) {
-      return null;
-    }
-    // If filtered by project, show breadcrumb
-    segments.push({
-      label: 'Sessions',
-      href: '/',
-      icon: <History className="w-3 h-3" />,
-      iconBg: 'bg-gradient-to-br from-emerald-500 to-teal-600',
-    });
-  } else {
-    // On other pages, show Sessions as the base
-    segments.push({
-      label: 'Sessions',
-      href: '/',
-      icon: <History className="w-3 h-3" />,
-      iconBg: 'bg-gradient-to-br from-emerald-500 to-teal-600',
-    });
+    return null;
   }
+
+  // On other pages, show Sessions as the base
+  segments.push({
+    label: 'Sessions',
+    href: '/',
+    icon: <History className="w-3 h-3" />,
+    iconBg: 'bg-gradient-to-br from-emerald-500 to-teal-600',
+  });
 
   // Add project if filtered (and not viewing a session which has its own project display)
   if (filters.project && !sessionId) {
