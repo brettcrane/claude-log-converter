@@ -1,6 +1,9 @@
 """Path utility functions."""
 
 import base64
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def decode_project_path(encoded_dir_name: str) -> str:
@@ -21,7 +24,8 @@ def decode_project_path(encoded_dir_name: str) -> str:
         encoded_part += "=" * padding_needed
 
     try:
-        decoded_bytes = base64.b64decode(encoded_part)
+        decoded_bytes = base64.b64decode(encoded_part, validate=True)
         return decoded_bytes.decode("utf-8")
-    except Exception:
+    except (ValueError, UnicodeDecodeError) as e:
+        logger.warning(f"Failed to decode project path '{encoded_dir_name}': {e}")
         return encoded_dir_name

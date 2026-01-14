@@ -16,7 +16,7 @@
 ### Option 1: Automated Setup (Recommended)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/claude-log-converter.git
+git clone https://github.com/brettcrane/claude-log-converter.git
 cd claude-log-converter
 ./setup.sh
 python run.py
