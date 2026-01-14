@@ -20,7 +20,7 @@
 
 ### UX
 - [x] ~~Filter header consistency~~ - Unified bookmarks header with sessions page (compact layout, gradient icon retained)
-- [ ] Sessions page breadcrumbs - Breadcrumbs only appear when filters are applied, making navigation inconsistent. Either make breadcrumbs permanent or integrate filter state into the existing "Sessions" header (move session count elsewhere if needed).
+- [x] ~~Sessions page breadcrumbs~~ - Removed breadcrumbs from Sessions page entirely for consistency (completed 2026-01-14)
 - [ ] Bookmark jump scroll positioning - Current implementation doesn't perfectly handle variable header heights when jumping to bookmarked events. Need to account for both the session detail header and potential floating/sticky headers at different scroll positions.
 - [ ] Event type icons in session cards - small icons showing activity types (edits, bash, etc.)
 - [ ] Improved diff viewer (side-by-side view with synchronized scrolling)
@@ -76,6 +76,9 @@ When Claude creates a PR for a feature:
 ---
 
 ## Completed
+
+### 2026-01-14
+- [x] **Sessions page breadcrumbs** - Removed breadcrumbs from Sessions page entirely. The page already has a comprehensive header with project badge, session count, and filters, making breadcrumbs redundant. Previously breadcrumbs only appeared when filters were applied, causing inconsistent layout shifts. Other pages (SessionDetail, Upload) retain breadcrumbs for proper navigation context.
 
 ### 2026-01-13
 - [x] **Bookmark jump-to-event** - Clicking a bookmark now navigates to the session and scrolls to the bookmarked event with a golden highlight animation. Features: URL hash navigation (#event-{id}), auto-expand of collapsed groups containing bookmarked events, "Bookmark hidden" indicator when filters hide the target event, bookmark badges visible in timeline. Scroll positioning partially works but has edge cases with variable header heights (see TODO).
