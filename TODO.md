@@ -3,7 +3,7 @@
 ## High Priority
 
 ### Architecture / Safety
-- [ ] **Audit refresh button safety** - The "Refresh" button in the sessions list may be using legacy cache-clearing logic that could corrupt the SQLite database. Verify it's still needed with the new SQLite backend, and if so, ensure it uses safe sync methods (not destructive cache clearing).
+- [x] ~~**Audit refresh button safety**~~ (verified 2026-01-13) - The refresh button correctly uses incremental sync via `_sync_index()` which detects new/modified files by mtime and uses safe `INSERT OR REPLACE` operations. No destructive cache clearing.
 
 ### UX & Timeline Improvements
 - [x] ~~Add syntax highlighting to code blocks in timeline~~ (completed - using prism-react-renderer)
